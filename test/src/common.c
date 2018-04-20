@@ -7,6 +7,7 @@ SQLHDBC conn;
 static void encrypt_bytea_crud(SQLSMALLINT data_kind);
 static void encrypt_text_crud(SQLSMALLINT data_kind);
 static void encrypt_numeric_crud(SQLSMALLINT data_kind);
+static void encrypt_integer_crud(SQLSMALLINT data_kind);
 static void encrypt_timestamp_crud(SQLSMALLINT data_kind);
 
 void
@@ -388,6 +389,10 @@ void tdeforpg_crud(SQLSMALLINT datatype_patern, SQLSMALLINT data_kind){
 			/* ENCRYPT_NUMERIC_TEST test */
 			encrypt_numeric_crud(data_kind);
 			break;
+		case ENCRYPT_INTEGER_TEST:
+			/* ENCRYPT_INTEGER_TEST test */
+			encrypt_integer_crud(data_kind);
+			break;
 		case ENCRYPT_TIMESTAMP_TEST:
 			/* ENCRYPT_TIMESTAMP_TEST test */
 			encrypt_timestamp_crud(data_kind);
@@ -412,9 +417,6 @@ static void encrypt_bytea_crud(SQLSMALLINT data_kind){
 	SQLLEN cbParam, paramsize,i;
 	SQLLEN cbParam1,cbParam2;
 	SQLCHAR *sql;
-	SQLINTEGER longparam;
-	SQL_INTERVAL_STRUCT intervalparam;
-	SQLSMALLINT colcount;
 	char		byteaParam1[5000];
 	char		byteaParam2[6000];
 	int			j;
@@ -1392,15 +1394,9 @@ static void encrypt_text_crud(SQLSMALLINT data_kind){
 	SQLLEN cbParam2;
 	SQLCHAR *sql;
 	int i;
-	SQLINTEGER longparam;
-	SQL_INTERVAL_STRUCT intervalparam;
-	SQLSMALLINT colcount;
-	char		byteaParam1[5000];
-	char		byteaParam2[5000];
 	
 	const char* onebyte = "a";
 	char 		*texttest_ext;
-	int			j;
 
 	rc = SQLAllocHandle(SQL_HANDLE_STMT, conn, &hstmt);
 	if (!SQL_SUCCEEDED(rc))
@@ -1791,21 +1787,21 @@ static void encrypt_text_crud(SQLSMALLINT data_kind){
 			CHECK_STMT_RESULT(rc, "UPDATE pre_enc_text SET c1 failed", hstmt);
 
 			/* bind param  */
-				texttest_ext = malloc(9001*sizeof(char));
-				strcpy(texttest_ext,onebyte);
-				for (i=1; i<9000;i++)
-					strcat(texttest_ext,onebyte);
-				cbParam1 = 8999;
+			texttest_ext = malloc(9001*sizeof(char));
+			strcpy(texttest_ext,onebyte);
+			for (i=1; i<9000;i++)
+				strcat(texttest_ext,onebyte);
+			cbParam1 = 8999;
 
-				rc = SQLBindParameter(hstmt, 1, SQL_PARAM_INPUT,
-									  SQL_C_CHAR,	/* value type */
-									  SQL_CHAR,	/* param type */
-									  sizeof(texttest_ext), /* column size */
-									  0,			/* dec digits */
-									  texttest_ext,	/* param value ptr */
-									  sizeof(texttest_ext), /* buffer len */
-									  &cbParam1		/* StrLen_or_IndPtr */);
-				CHECK_STMT_RESULT(rc, "\nSQLBindParameter failed", hstmt);
+			rc = SQLBindParameter(hstmt, 1, SQL_PARAM_INPUT,
+								  SQL_C_CHAR,	/* value type */
+								  SQL_CHAR,	/* param type */
+								  sizeof(texttest_ext), /* column size */
+								  0,			/* dec digits */
+								  texttest_ext,	/* param value ptr */
+								  sizeof(texttest_ext), /* buffer len */
+								  &cbParam1		/* StrLen_or_IndPtr */);
+			CHECK_STMT_RESULT(rc, "\nSQLBindParameter failed", hstmt);
 
 				/* Execute */
 			rc = SQLExecute(hstmt);
@@ -3186,6 +3182,643 @@ static void encrypt_numeric_crud(SQLSMALLINT data_kind){
 		exit(1);
 	}
 }	
+
+
+static void encrypt_integer_crud(SQLSMALLINT data_kind){
+	SQLRETURN	rc;
+	HSTMT		hstmt = SQL_NULL_HSTMT;
+	SQLLEN		cbParam1, cbParam2;
+	SQLCHAR *sql;
+	SQLBIGINT mybigint = 9223372036854775807;
+	
+	rc = SQLAllocHandle(SQL_HANDLE_STMT, conn, &hstmt);
+	if (!SQL_SUCCEEDED(rc))
+	{
+		print_diag("failed to allocate stmt handle", SQL_HANDLE_DBC, conn);
+		exit(1);
+	}
+
+	/**** Test PREPARE_encrypt_numeric (SQL_C_NUMERIC) ****/
+
+	/* PREPARE TEST */
+	printf("\nSQLPrepare_TEST_START\n");
+
+	/*pgtde_begin_session*/
+	pgtde_begin_session(hstmt);
+
+	/* drop table  */
+	rc = SQLExecDirect(hstmt, (SQLCHAR *) "DROP TABLE IF EXISTS pre_enc_num,pre_num_tbl,dir_enc_num,dir_num_tbl", SQL_NTS);
+	CHECK_STMT_RESULT(rc, "SQLExecDirect failed while dropping temp table", hstmt);
+
+	/* CREATE TABLE */
+	rc = SQLExecDirect(hstmt, (SQLCHAR *) "CREATE TABLE pre_enc_num (id int4, c1 encrypt_integer, c11 bigint)", SQL_NTS);
+	CHECK_STMT_RESULT(rc, "SQLExecDirect failed while CREATE TABLE num_tbl", hstmt);
+	
+	/* INSERT */
+	rc = SQLExecDirect(hstmt, (SQLCHAR *) "INSERT INTO pre_enc_num values (1,NULL,NULL);", SQL_NTS);
+	CHECK_STMT_RESULT(rc, "SQLExecDirect failed while insert", hstmt);
+	rc = SQLExecDirect(hstmt, (SQLCHAR *) "INSERT INTO pre_enc_num values (2,0,0);", SQL_NTS);
+	CHECK_STMT_RESULT(rc, "SQLExecDirect failed while insert", hstmt);
+	rc = SQLExecDirect(hstmt, (SQLCHAR *) "INSERT INTO pre_enc_num values (3,1,1);", SQL_NTS);
+	CHECK_STMT_RESULT(rc, "SQLExecDirect failed while insert", hstmt);
+	rc = SQLExecDirect(hstmt, (SQLCHAR *) "INSERT INTO pre_enc_num values (4,-9223372036854775808 ,-9223372036854775808 );", SQL_NTS);
+	CHECK_STMT_RESULT(rc, "SQLExecDirect failed while insert", hstmt);
+	rc = SQLExecDirect(hstmt, (SQLCHAR *) "INSERT INTO pre_enc_num values (5,9223372036854775807 ,9223372036854775807 );", SQL_NTS);
+	CHECK_STMT_RESULT(rc, "SQLExecDirect failed while insert", hstmt);
+
+	/* hstmt FREE */
+	rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+	rc = SQLAllocHandle(SQL_HANDLE_STMT, conn, &hstmt);
+
+	/* INSERT INTO pre_enc_num */
+	printf("\nINSERT_TEST");
+
+	/* INSERT INTO pre_enc_num */
+	rc = SQLPrepare(hstmt, (SQLCHAR *) "INSERT INTO pre_enc_num VALUES(11, ?, ?)", SQL_NTS);
+	CHECK_STMT_RESULT(rc, "SQLPrepare failed", hstmt);
+	
+	switch (data_kind)
+	{
+		case BASIC_DATA:	
+			cbParam1 = sizeof(SQLBIGINT);
+			rc = SQLBindParameter(hstmt, 1, SQL_PARAM_INPUT,
+								  SQL_C_SBIGINT,	/* value type */
+								  SQL_BIGINT,	/* param type */
+								  0,			/* column size (ignored for SQL_INTERVAL_SECOND) */
+								  0,			/* dec digits */
+								  &mybigint, /* param value ptr */
+								  sizeof(SQLBIGINT), /* buffer len (ignored for SQL_C_INTERVAL_SECOND) */
+								  &cbParam1 /* StrLen_or_IndPtr (ignored for SQL_C_INTERVAL_SECOND) */);
+			CHECK_STMT_RESULT(rc, "SQLBindParameter failed", hstmt);
+
+			cbParam2 = sizeof(SQLBIGINT);
+			rc = SQLBindParameter(hstmt, 2, SQL_PARAM_INPUT,
+								  SQL_C_SBIGINT,	/* value type */
+								  SQL_BIGINT,	/* param type */
+								  0,			/* column size (ignored for SQL_INTERVAL_SECOND) */
+								  0,			/* dec digits */
+								  &mybigint, /* param value ptr */
+								  sizeof(SQLBIGINT), /* buffer len (ignored for SQL_C_INTERVAL_SECOND) */
+								  &cbParam1 /* StrLen_or_IndPtr (ignored for SQL_C_INTERVAL_SECOND) */);
+			CHECK_STMT_RESULT(rc, "SQLBindParameter failed", hstmt);
+
+			/* Execute */
+			rc = SQLExecute(hstmt);
+			if (!SQL_SUCCEEDED(rc))
+			{
+				print_diag("SQLExecute failed", SQL_HANDLE_STMT, hstmt);
+			}
+			
+			/* hstmt FREE */
+			rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+			rc = SQLAllocHandle(SQL_HANDLE_STMT, conn, &hstmt);
+
+			rc = SQLPrepare(hstmt, (SQLCHAR *) "INSERT INTO pre_enc_num VALUES(22, ?, ?)", SQL_NTS);
+			CHECK_STMT_RESULT(rc, "SQLPrepare failed", hstmt);
+		
+			mybigint = -9223372036854775808LL;
+			cbParam1 = sizeof(SQLBIGINT);
+			rc = SQLBindParameter(hstmt, 1, SQL_PARAM_INPUT,
+								  SQL_C_SBIGINT,	/* value type */
+								  SQL_BIGINT,	/* param type */
+								  0,			/* column size (ignored for SQL_INTERVAL_SECOND) */
+								  0,			/* dec digits */
+								  &mybigint, /* param value ptr */
+								  sizeof(SQLBIGINT), /* buffer len (ignored for SQL_C_INTERVAL_SECOND) */
+								  &cbParam1 /* StrLen_or_IndPtr (ignored for SQL_C_INTERVAL_SECOND) */);
+			CHECK_STMT_RESULT(rc, "SQLBindParameter failed", hstmt);
+
+			cbParam2 = sizeof(SQLBIGINT);
+			rc = SQLBindParameter(hstmt, 2, SQL_PARAM_INPUT,
+								  SQL_C_SBIGINT,	/* value type */
+								  SQL_BIGINT,	/* param type */
+								  0,			/* column size (ignored for SQL_INTERVAL_SECOND) */
+								  0,			/* dec digits */
+								  &mybigint, /* param value ptr */
+								  sizeof(SQLBIGINT), /* buffer len (ignored for SQL_C_INTERVAL_SECOND) */
+								  &cbParam1 /* StrLen_or_IndPtr (ignored for SQL_C_INTERVAL_SECOND) */);
+			CHECK_STMT_RESULT(rc, "SQLBindParameter failed", hstmt);
+
+			/* Execute */
+			rc = SQLExecute(hstmt);
+			if (!SQL_SUCCEEDED(rc))
+			{
+				print_diag("SQLExecute failed", SQL_HANDLE_STMT, hstmt);
+			}
+			
+			/* hstmt FREE */
+			rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+			rc = SQLAllocHandle(SQL_HANDLE_STMT, conn, &hstmt);		
+			break;
+			
+		default:
+			break;
+			
+	}
+
+	/* SELECT * FROM pre_enc_num */
+	sql = "SELECT * FROM pre_enc_num";
+	test_execute_sql_and_print(sql);
+
+	/* hstmt FREE */
+	rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+	CHECK_STMT_RESULT(rc, "SQLFreeStmt failed", hstmt);
+
+	/* SELECT *c1=c11 */
+	sql = "SELECT (c1=c11)::text FROM pre_enc_num";
+	test_execute_sql_and_print(sql);
+
+	/* hstmt FREE */
+	rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+	CHECK_STMT_RESULT(rc, "SQLFreeStmt failed", hstmt);
+
+	
+	/* UPDATE_TEST */
+	printf("\nUPDATE_TEST");
+
+	/* UPDATE pre_enc_num SET c1 */
+	switch (data_kind)
+	{
+		case BASIC_DATA:
+			rc = SQLPrepare(hstmt, (SQLCHAR *) "UPDATE pre_enc_num SET c1=? WHERE c1=-9223372036854775808", SQL_NTS);
+			CHECK_STMT_RESULT(rc, "UPDATE pre_enc_num SET c1 failed", hstmt);
+			
+			mybigint = 1111111;
+			cbParam1 = sizeof(SQLBIGINT);
+			rc = SQLBindParameter(hstmt, 1, SQL_PARAM_INPUT,
+								  SQL_C_SBIGINT,	/* value type */
+								  SQL_BIGINT,	/* param type */
+								  0,			/* column size (ignored for SQL_INTERVAL_SECOND) */
+								  0,			/* dec digits */
+								  &mybigint, /* param value ptr */
+								  sizeof(SQLBIGINT), /* buffer len (ignored for SQL_C_INTERVAL_SECOND) */
+								  &cbParam1 /* StrLen_or_IndPtr (ignored for SQL_C_INTERVAL_SECOND) */);
+			CHECK_STMT_RESULT(rc, "SQLBindParameter failed", hstmt);
+
+			/* Execute */
+			rc = SQLExecute(hstmt);
+			if (!SQL_SUCCEEDED(rc))
+			{
+				print_diag("SQLExecute failed", SQL_HANDLE_STMT, hstmt);
+		    }
+			
+			/* hstmt FREE */
+			rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+			CHECK_STMT_RESULT(rc, "SQLFreeStmt failed", hstmt);
+
+			/* UPDATE pre_enc_num SET c11 */
+			rc = SQLPrepare(hstmt, (SQLCHAR *) "UPDATE pre_enc_num SET c11=? WHERE c11=-9223372036854775808", SQL_NTS);
+			CHECK_STMT_RESULT(rc, "UPDATE pre_enc_num SET c1 failed", hstmt);
+			
+			mybigint = 1111111;
+			cbParam1 = sizeof(SQLBIGINT);
+			rc = SQLBindParameter(hstmt, 1, SQL_PARAM_INPUT,
+								  SQL_C_SBIGINT,	/* value type */
+								  SQL_BIGINT,	/* param type */
+								  0,			/* column size (ignored for SQL_INTERVAL_SECOND) */
+								  0,			/* dec digits */
+								  &mybigint, /* param value ptr */
+								  sizeof(SQLBIGINT), /* buffer len (ignored for SQL_C_INTERVAL_SECOND) */
+								  &cbParam1 /* StrLen_or_IndPtr (ignored for SQL_C_INTERVAL_SECOND) */);
+			CHECK_STMT_RESULT(rc, "SQLBindParameter failed", hstmt);
+
+
+			/* Execute */
+			rc = SQLExecute(hstmt);
+			if (!SQL_SUCCEEDED(rc))
+			{
+				print_diag("SQLExecute failed", SQL_HANDLE_STMT, hstmt);
+		    }
+			
+			/* hstmt FREE */
+			rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+			rc = SQLAllocHandle(SQL_HANDLE_STMT, conn, &hstmt);
+			break;
+
+		default:
+			break;			
+	}
+
+	/* SELECT * FROM pre_enc_num */
+	sql = "SELECT * FROM pre_enc_num";
+	test_execute_sql_and_print(sql);
+
+	/* hstmt FREE */
+	rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+	CHECK_STMT_RESULT(rc, "SQLFreeStmt failed", hstmt);
+
+	/* SELECT *c1=c11 */
+	sql = "SELECT (c1=c11)::text FROM pre_enc_num";
+	test_execute_sql_and_print(sql);
+
+	/* hstmt FREE */
+	rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+	CHECK_STMT_RESULT(rc, "SQLFreeStmt failed", hstmt);
+
+	
+	/* DELETE_TEST */
+	printf("\nDELETE_TEST");
+
+	/* DELETE FROM pre_enc_num WHERE c1 */
+	switch (data_kind)
+	{
+		case BASIC_DATA: 
+			rc = SQLPrepare(hstmt, (SQLCHAR *) "DELETE FROM pre_enc_num WHERE c1=?", SQL_NTS);
+			CHECK_STMT_RESULT(rc, "DELETE FROM pre_enc_num WHERE c1 failed", hstmt);
+
+			mybigint = 1111111;
+			cbParam1 = sizeof(SQLBIGINT);
+			rc = SQLBindParameter(hstmt, 1, SQL_PARAM_INPUT,
+								  SQL_C_SBIGINT,	/* value type */
+								  SQL_BIGINT,	/* param type */
+								  0,			/* column size (ignored for SQL_INTERVAL_SECOND) */
+								  0,			/* dec digits */
+								  &mybigint, /* param value ptr */
+								  sizeof(SQLBIGINT), /* buffer len (ignored for SQL_C_INTERVAL_SECOND) */
+								  &cbParam1 /* StrLen_or_IndPtr (ignored for SQL_C_INTERVAL_SECOND) */);
+			CHECK_STMT_RESULT(rc, "SQLBindParameter failed", hstmt);
+
+			/* Execute */
+			rc = SQLExecute(hstmt);
+			if (!SQL_SUCCEEDED(rc))
+			{
+				print_diag("SQLExecute failed", SQL_HANDLE_STMT, hstmt);
+		    }
+			
+			/* hstmt FREE */
+			rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+			rc = SQLAllocHandle(SQL_HANDLE_STMT, conn, &hstmt);
+			break;
+
+		default:
+			break;
+			
+
+	}
+	/* SELECT * FROM pre_enc_num */
+	sql = "SELECT * FROM pre_enc_num";
+	test_execute_sql_and_print(sql);
+
+	/* hstmt FREE */
+	rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+	CHECK_STMT_RESULT(rc, "SQLFreeStmt failed", hstmt);
+
+	/* SELECT *c1=c11 */
+	sql = "SELECT (c1=c11)::text FROM pre_enc_num";
+	test_execute_sql_and_print(sql);
+
+	/* hstmt FREE */
+	rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+	CHECK_STMT_RESULT(rc, "SQLFreeStmt failed", hstmt);
+
+	
+	/* SELECT_TEST */
+	printf("\nSELECT_TEST");
+
+	switch (data_kind)
+	{
+		case BASIC_DATA:
+			/* SELECT c1=c11 FROM pre_enc_num */
+			rc = SQLPrepare(hstmt, (SQLCHAR *) "SELECT (c1=c11)::text FROM pre_enc_num WHERE c1=?", SQL_NTS);
+			CHECK_STMT_RESULT(rc, "SELECT c1=c11 FROM pre_enc_num WHERE c1 failed", hstmt);
+			
+			mybigint = 9223372036854775807;
+			cbParam1 = sizeof(SQLBIGINT);
+			rc = SQLBindParameter(hstmt, 1, SQL_PARAM_INPUT,
+								  SQL_C_SBIGINT,	/* value type */
+								  SQL_BIGINT,	/* param type */
+								  0,			/* column size (ignored for SQL_INTERVAL_SECOND) */
+								  0,			/* dec digits */
+								  &mybigint, /* param value ptr */
+								  sizeof(SQLBIGINT), /* buffer len (ignored for SQL_C_INTERVAL_SECOND) */
+								  &cbParam1 /* StrLen_or_IndPtr (ignored for SQL_C_INTERVAL_SECOND) */);
+			CHECK_STMT_RESULT(rc, "SQLBindParameter failed", hstmt);
+
+			/* Execute */
+			rc = SQLExecute(hstmt);
+			if (!SQL_SUCCEEDED(rc))
+			{
+				print_diag("SQLExecute failed", SQL_HANDLE_STMT, hstmt);
+		    }
+			printf("\n");
+			printf(sql);
+			printf("\n");
+			print_result(hstmt);
+			
+			/* hstmt FREE */
+			rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+			rc = SQLAllocHandle(SQL_HANDLE_STMT, conn, &hstmt);
+			break;
+			
+		default:
+			break;
+	}	
+
+	/* SELECT * FROM pre_enc_num */
+	sql = "SELECT * FROM pre_enc_num";
+	test_execute_sql_and_print(sql);
+
+	/* hstmt FREE */
+	rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+	CHECK_STMT_RESULT(rc, "SQLFreeStmt failed", hstmt);
+
+	/* SELECT *c1=c11 */
+	sql = "SELECT c1=c11 FROM pre_enc_num";
+	test_execute_sql_and_print(sql);
+
+	/* hstmt FREE */
+	rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+	CHECK_STMT_RESULT(rc, "SQLFreeStmt failed", hstmt);
+
+	/* select c1=c11 */
+	sql = "SELECT (c1=c11)::text,c1=c11 FROM pre_enc_num";
+	test_execute_sql_and_print(sql);
+
+	/* hstmt FREE */
+	rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+	rc = SQLAllocHandle(SQL_HANDLE_STMT, conn, &hstmt);
+
+	/* CREATE TABLE pre_enc_num */
+	rc = SQLExecDirect(hstmt, (SQLCHAR *) "CREATE TABLE pre_num_tbl (id int4, c1 bigint)", SQL_NTS);
+	CHECK_STMT_RESULT(rc, "SQLExecDirect failed while CREATE TABLE num_tbl", hstmt);
+
+	/* hstmt FREE */
+	rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+	rc = SQLAllocHandle(SQL_HANDLE_STMT, conn, &hstmt);
+	
+	/* insert pre_num_tbl */
+	sql = "INSERT INTO pre_num_tbl(id, c1) SELECT id, c1 FROM pre_enc_num";
+	rc = SQLExecDirect(hstmt, (SQLCHAR *) sql, SQL_NTS);
+	CHECK_STMT_RESULT(rc, "SQLExecDirect failed while insert pre_num_tbl", hstmt);	
+	
+	/* hstmt FREE */
+	rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+	rc = SQLAllocHandle(SQL_HANDLE_STMT, conn, &hstmt);
+
+	/* SELECT * FROM pre_num_tbl */
+	sql = "SELECT * FROM pre_num_tbl";
+	test_execute_sql_and_print(sql);
+
+	/* hstmt FREE */
+	rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+	rc = SQLAllocHandle(SQL_HANDLE_STMT, conn, &hstmt);
+
+	/* select e.c1=t.c1 */
+	sql = "SELECT (e.c1=t.c1)::text FROM pre_enc_num e NATURAL JOIN pre_num_tbl t";
+	test_execute_sql_and_print(sql);
+
+
+	printf("\nPREPARE_TEST_COMPLETE\n");
+	printf("\n----------------------------------------");
+	
+	/* DIRECT TEST */
+	printf("\nDIRECT_TEST_START\n");
+
+	/* hstmt FREE */
+	rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+	rc = SQLAllocHandle(SQL_HANDLE_STMT, conn, &hstmt);
+
+	/* CREATE TABLE pre_enc_num */
+	rc = SQLExecDirect(hstmt, (SQLCHAR *) "CREATE TABLE dir_enc_num (id int4, c1 encrypt_integer, c11 bigint)", SQL_NTS);
+	CHECK_STMT_RESULT(rc, "SQLExecDirect failed while CREATE TABLE num_tbl", hstmt);
+
+	/* hstmt FREE */
+	rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+	rc = SQLAllocHandle(SQL_HANDLE_STMT, conn, &hstmt);
+
+	/*pgtde_begin_session*/
+	pgtde_begin_session(hstmt);
+
+	/* INSERT_TEST */
+	printf("\nINSERT_TEST");
+
+	switch (data_kind)	
+	{
+		case BASIC_DATA:
+			/* INSERT INTO dir_enc_num */
+			rc = SQLExecDirect(hstmt, (SQLCHAR *) "INSERT INTO dir_enc_num values (10,NULL,NULL);", SQL_NTS);
+			CHECK_STMT_RESULT(rc, "SQLExecDirect failed while insert", hstmt);
+			rc = SQLExecDirect(hstmt, (SQLCHAR *) "INSERT INTO dir_enc_num values (20,0,0);", SQL_NTS);
+			CHECK_STMT_RESULT(rc, "SQLExecDirect failed while insert", hstmt);
+			rc = SQLExecDirect(hstmt, (SQLCHAR *) "INSERT INTO dir_enc_num values (30,1,1);", SQL_NTS);
+			CHECK_STMT_RESULT(rc, "SQLExecDirect failed while insert", hstmt);
+			rc = SQLExecDirect(hstmt, (SQLCHAR *) "INSERT INTO dir_enc_num values (40,-9223372036854775808 ,-9223372036854775808 );", SQL_NTS);
+			CHECK_STMT_RESULT(rc, "SQLExecDirect failed while insert", hstmt);
+			rc = SQLExecDirect(hstmt, (SQLCHAR *) "INSERT INTO dir_enc_num values (50,9223372036854775807 ,9223372036854775807 );", SQL_NTS);
+			CHECK_STMT_RESULT(rc, "SQLExecDirect failed while insert", hstmt);
+
+			/* hstmt FREE */
+			rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+			CHECK_STMT_RESULT(rc, "SQLFreeStmt failed", hstmt);
+			
+		default:
+			break;
+	}		
+
+	/* SELECT c1=c11 */
+	sql = "SELECT * FROM dir_enc_num";
+	test_execute_sql_and_print(sql);
+
+	/* hstmt FREE */
+	rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+	rc = SQLAllocHandle(SQL_HANDLE_STMT, conn, &hstmt);
+
+	/* SELECT c1=c11 */
+	sql = "SELECT (c1=c11)::text FROM dir_enc_num";
+	test_execute_sql_and_print(sql);
+
+	/* hstmt FREE */
+	rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+	rc = SQLAllocHandle(SQL_HANDLE_STMT, conn, &hstmt);
+	
+	/* UPDATE_TEST */
+	printf("\nUPDATE_TEST");
+
+	switch (data_kind)
+	{
+		case BASIC_DATA:
+			/* UPDATE dir_enc_num SET c1 */
+			rc = SQLExecDirect(hstmt, (SQLCHAR *) "UPDATE dir_enc_num SET c1=22222 WHERE c1=1", SQL_NTS);
+			CHECK_STMT_RESULT(rc, "SQLExecDirect failed while UPDATE SET c1", hstmt);
+
+			/* UPDATE dir_enc_num SET c11 */
+			rc = SQLExecDirect(hstmt, (SQLCHAR *) "UPDATE dir_enc_num SET c11=22222 WHERE c11=1", SQL_NTS);
+			CHECK_STMT_RESULT(rc, "SQLExecDirect failed while UPDATE SET c11 1", hstmt);
+
+			/* UPDATE dir_enc_num SET c11 */
+			rc = SQLExecDirect(hstmt, (SQLCHAR *) "UPDATE dir_enc_num SET c1=33333 WHERE c1 IS NULL", SQL_NTS);
+			CHECK_STMT_RESULT(rc, "SQLExecDirect failed while UPDATE SET c11 2", hstmt);
+
+			/* UPDATE dir_enc_num SET c11 */
+			rc = SQLExecDirect(hstmt, (SQLCHAR *) "UPDATE dir_enc_num SET c11=33333 WHERE c11 IS NULL", SQL_NTS);
+			CHECK_STMT_RESULT(rc, "SQLExecDirect failed while UPDATE SET c11 3", hstmt);
+
+			break;
+	
+		default:
+			break;		
+	}
+	
+	/* SELECT c1=c11 */
+	sql = "SELECT * FROM dir_enc_num";
+	test_execute_sql_and_print(sql);
+
+	/* hstmt FREE */
+	rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+	rc = SQLAllocHandle(SQL_HANDLE_STMT, conn, &hstmt);
+
+	/* SELECT c1=c11 */
+	sql = "SELECT (c1=c11)::text FROM dir_enc_num";
+	test_execute_sql_and_print(sql);
+
+	/* hstmt FREE */
+	rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+	rc = SQLAllocHandle(SQL_HANDLE_STMT, conn, &hstmt);
+
+	/* INSERT */
+	rc = SQLExecDirect(hstmt, (SQLCHAR *) "INSERT INTO dir_enc_num VALUES(11111,NULL,NULL);", SQL_NTS);
+	CHECK_STMT_RESULT(rc, "SQLExecDirect failed while DELETE FROM dir_enc_num WHERE c1", hstmt);
+
+	/* hstmt FREE */
+	rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+	rc = SQLAllocHandle(SQL_HANDLE_STMT, conn, &hstmt);
+	
+	/* SELECT c1=c11 */
+	sql = "SELECT * FROM dir_enc_num";
+	test_execute_sql_and_print(sql);
+
+	/* hstmt FREE */
+	rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+	rc = SQLAllocHandle(SQL_HANDLE_STMT, conn, &hstmt);
+	
+	/* DELETE_TEST */
+	printf("\nDELETE_TEST");
+
+	switch (data_kind)
+	{
+		case BASIC_DATA:
+			/* DELETE FROM dir_enc_num WHERE c1 */
+			rc = SQLExecDirect(hstmt, (SQLCHAR *) "DELETE FROM dir_enc_num WHERE c1=33333", SQL_NTS);
+			CHECK_STMT_RESULT(rc, "SQLExecDirect failed while DELETE FROM dir_enc_num WHERE c1", hstmt);
+
+			/* hstmt FREE */
+			rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+			rc = SQLAllocHandle(SQL_HANDLE_STMT, conn, &hstmt);
+			
+			/* DELETE FROM dir_enc_num WHERE c1 */
+			rc = SQLExecDirect(hstmt, (SQLCHAR *) "DELETE FROM dir_enc_num WHERE c1 IS NULL", SQL_NTS);
+			CHECK_STMT_RESULT(rc, "SQLExecDirect failed while DELETE FROM dir_enc_num WHERE c1", hstmt);
+
+			/* hstmt FREE */
+			rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+			rc = SQLAllocHandle(SQL_HANDLE_STMT, conn, &hstmt);
+			break;
+			
+		default:
+			break;
+	}
+	
+	/* SELECT c1=c11 */
+	sql = "SELECT * FROM dir_enc_num";
+	test_execute_sql_and_print(sql);
+
+	/* hstmt FREE */
+	rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+	rc = SQLAllocHandle(SQL_HANDLE_STMT, conn, &hstmt);
+
+	/* SELECT c1=c11 */
+	sql = "SELECT (c1=c11)::text FROM dir_enc_num";
+	test_execute_sql_and_print(sql);
+
+	/* hstmt FREE */
+	rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+	rc = SQLAllocHandle(SQL_HANDLE_STMT, conn, &hstmt);
+
+	
+	/* SELECT_TEST */
+	printf("\nSELECT_TEST");
+
+	switch (data_kind)
+	{
+		case BASIC_DATA:
+			/* SELECT * FROM dir_enc_num WHERE c1 */
+			sql = "SELECT * FROM dir_enc_num";
+			test_execute_sql_and_print(sql);
+
+			/* hstmt FREE */
+			rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+			rc = SQLAllocHandle(SQL_HANDLE_STMT, conn, &hstmt);
+			break;
+				
+		default:
+			break;
+	}
+	
+	/* SELECT c1=c11 */
+	sql = "SELECT * FROM dir_enc_num";
+	test_execute_sql_and_print(sql);
+
+	/* hstmt FREE */
+	rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+	rc = SQLAllocHandle(SQL_HANDLE_STMT, conn, &hstmt);
+
+	/* SELECT c1=c11 */
+	sql = "SELECT (c1=c11)::text FROM dir_enc_num";
+	test_execute_sql_and_print(sql);
+
+	/* hstmt FREE */
+	rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+	rc = SQLAllocHandle(SQL_HANDLE_STMT, conn, &hstmt);
+
+	/* create dir_num_tbl */
+	sql = "CREATE TABLE dir_num_tbl (id int4, c1 numeric)";
+	rc = SQLExecDirect(hstmt, (SQLCHAR *) sql, SQL_NTS);
+	CHECK_STMT_RESULT(rc, "SQLExecDirect failed while create dir_num_tbl table", hstmt);	
+	
+	/* hstmt FREE */
+	rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+	rc = SQLAllocHandle(SQL_HANDLE_STMT, conn, &hstmt);
+
+	/* INSERT INTO dir_num_tbl */
+	sql = "INSERT INTO dir_num_tbl(id, c1) SELECT id, c1 FROM dir_enc_num";
+	rc = SQLExecDirect(hstmt, (SQLCHAR *) sql, SQL_NTS);
+	CHECK_STMT_RESULT(rc, "SQLExecDirect failed while INSERT INTO dir_num_tbl table", hstmt);	
+		
+	/* hstmt FREE */
+	rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+	rc = SQLAllocHandle(SQL_HANDLE_STMT, conn, &hstmt);
+
+	/* SELECT * FROM dir_num_tbl */
+	sql = "SELECT * FROM dir_num_tbl";
+	test_execute_sql_and_print(sql);
+
+	/* hstmt FREE */
+	rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+	rc = SQLAllocHandle(SQL_HANDLE_STMT, conn, &hstmt);
+
+	/* select e.c1=t.c1 */
+	sql = "SELECT (e.c1=t.c1)::text FROM dir_enc_num e NATURAL JOIN dir_num_tbl t";
+	test_execute_sql_and_print(sql);
+
+	/* hstmt FREE */
+	rc = SQLFreeStmt(hstmt, SQL_CLOSE);
+	rc = SQLAllocHandle(SQL_HANDLE_STMT, conn, &hstmt);
+	
+	/* select p.c1=d.c1 */
+	sql = "SELECT (p.c1=d.c1)::text FROM dir_enc_num d NATURAL JOIN pre_enc_num p";
+	test_execute_sql_and_print(sql);
+
+	printf("\nDIRECT_TEST_COMPLETE\n");
+	printf("----------------------------------------\n");
+
+	rc = SQLFreeHandle(SQL_HANDLE_STMT, hstmt);
+	if (!SQL_SUCCEEDED(rc))
+	{
+		print_diag("SQLFreeHandle failed", SQL_HANDLE_STMT, hstmt);
+		exit(1);
+	}
+}	
+
 
 /*
  * Test TDEforPG for ENCRYPT_TIMESTAMP_TEST.

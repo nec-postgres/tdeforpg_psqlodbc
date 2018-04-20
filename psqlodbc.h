@@ -41,6 +41,25 @@
 #include <stdlib.h>
 #endif /* WIN32 */
 
+#ifdef  __INCLUDE_POSTGRES_FE_H__ /* currently not defined */
+/*
+ *      Unfortunately #including postgres_fe.h causes various trobles.
+ */
+#include "postgres_fe.h"
+#else /* currently */
+#if defined(__GNUC__) || defined(__IBMC__)
+#if ((__GNUC__ * 100) + __GNUC_MINOR__) >= 404
+#define PG_PRINTF_ATTRIBUTE gnu_printf
+#else
+#define PG_PRINTF_ATTRIBUTE printf
+#endif
+#define pg_attribute_printf(f,a) __attribute__((format(PG_PRINTF_ATTRIBUTE, f, a)))
+#else
+#define	__attribute__(x)
+#define pg_attribute_printf(f,a)
+#endif  /* __GNUC__ || __IBMC__ */
+#endif  /* __INCLUDE_POSTGRES_FE_H__ */
+
 #ifdef	_MEMORY_DEBUG_
 void		*pgdebug_alloc(size_t);
 void		*pgdebug_calloc(size_t, size_t);
@@ -149,9 +168,11 @@ typedef	UInt4	OID;
 #ifdef	_WIN64
 #define	FORMAT_LEN	"%I64d" /* SQLLEN */
 #define	FORMAT_ULEN	"%I64u" /* SQLULEN */
+#define	FORMAT_POSIROW	"%I64u"
 #else /* _WIN64 */
 #define	FORMAT_LEN	"%ld"	/* SQLLEN */
 #define	FORMAT_ULEN	"%lu"	/* SQLULEN */
+#define	FORMAT_POSIROW	"%hu"
 #endif /* _WIN64 */
 #else /* WIN32 */
 #define	FORMAT_SIZE_T	"%zu"	/* size_t */
@@ -199,7 +220,15 @@ typedef	unsigned long long ULONG_PTR;
 #define	FORMAT_ULEN	"%lu"	/* SQLULEN */
 #endif /* HAVE_LONG_LONG */
 #endif /* SIZEOF_LONG */
+ 
+#if (SIZEOF_VOID_P == 8) && !defined(WITH_IODBC)
+#define	FORMAT_POSIROW	FORMAT_ULEN
+#else
+#define	FORMAT_POSIROW	"%u"
+#endif
+
 #endif /* WIN32 */
+
 #define	CAST_PTR(type, ptr)	(type)((LONG_PTR)(ptr))
 #define	CAST_UPTR(type, ptr)	(type)((ULONG_PTR)(ptr))
 #ifndef	SQL_IS_LEN
@@ -232,18 +261,20 @@ typedef double SDOUBLE;
 #define	FALSE	(BOOL)0
 #endif /* FALSE */
 #else
+
 #if (_MSC_VER < 1900) /* vc12 or under */
 #define POSIX_SNPRINTF_REQUIRED
 #define snprintf posix_snprintf
 extern int posix_snprintf(char *buf, size_t size, const char *format, ...);
 #endif /* _MSC_VER */
-
 #ifndef strdup
 #define strdup _strdup
 #endif /* strdup */
 #define strnicmp _strnicmp
 #define stricmp _stricmp
 #endif /* WIN32 */
+
+#define IS_NOT_SPACE(c) ((c) && !isspace((UCHAR) c))
 
 #ifndef	SQL_ATTR_APP_ROW_DESC
 #define	SQL_ATTR_APP_ROW_DESC	10010
@@ -601,7 +632,6 @@ typedef struct
 	signed char	accessible_only;
 	signed char	ignore_round_trip_time;
 	signed char	disable_keepalive;
-	signed char	gssauth_use_gssapi;
 	signed char	wcs_debug;
 	UInt4		extra_opts;
 	Int4		keepalive_idle;
@@ -622,6 +652,7 @@ enum { /* CC_conninfo_init option */
 void	CC_conninfo_init(ConnInfo *conninfo, UInt4 option);
 void	CC_conninfo_release(ConnInfo *conninfo);
 void	CC_copy_conninfo(ConnInfo *ci, const ConnInfo *sci);
+const char *GetExeProgramName();
 #ifdef	POSIX_MULTITHREAD_SUPPORT
 #if	!defined(HAVE_ECO_THREAD_LOCKS)
 #define	POSIX_THREADMUTEX_SUPPORT

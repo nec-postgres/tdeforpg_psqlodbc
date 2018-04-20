@@ -27,7 +27,7 @@ void * pgdebug_alloc(size_t size)
 {
 	void * alloced;
 	alloced = malloc(size);
-inolog(" alloced=%p(%d)\n", alloced, size);
+MYLOG(2, " alloced=%p(" FORMAT_SIZE_T ")\n", alloced, size);
 	if (alloced)
 	{
 		if (!alsize)
@@ -48,7 +48,7 @@ inolog(" alloced=%p(%d)\n", alloced, size);
 		tbsize++;
 	}
 	else
-		mylog("%s:alloc %dbyte\n", ALCERR, size);
+		MYLOG(0, "%s:alloc " FORMAT_SIZE_T "byte\n", ALCERR, size);
 	return alloced;
 }
 void * pgdebug_calloc(size_t n, size_t size)
@@ -75,22 +75,20 @@ void * pgdebug_calloc(size_t n, size_t size)
 		tbsize++;
 	}
 	else
-		mylog("%s:calloc %dbyte\n", ALCERR, size);
-inolog("calloced = %p\n", alloced);
+		MYLOG(0, "%s:calloc " FORMAT_SIZE_T "byte\n", ALCERR, size);
+MYLOG(2, "calloced = %p\n", alloced);
 	return alloced;
 }
 void * pgdebug_realloc(void * ptr, size_t size)
 {
-	void * alloced = realloc(ptr, size);
+	void * alloced;
+
+	if (!ptr)
+		return pgdebug_alloc(size);
+	alloced = realloc(ptr, size);
 	if (!alloced)
 	{
-		mylog("%s:%s %p error\n", ALCERR, __FUNCTION__, ptr);
-	}
-	else if (!ptr)
-	{
-		altbl[tbsize].aladr = alloced;
-		altbl[tbsize].len = size;
-		tbsize++;
+		MYLOG(0, "%s %p error\n", ALCERR, ptr);
 	}
 	else /* if (alloced != ptr) */
 	{
@@ -106,7 +104,7 @@ void * pgdebug_realloc(void * ptr, size_t size)
 		}
 	}
 
-	inolog("%s %p->%p\n", __FUNCTION__, ptr, alloced);
+	MYLOG(2, "%p->%p\n", ptr, alloced);
 	return alloced;
 }
 char * pgdebug_strdup(const char * ptr)
@@ -114,7 +112,7 @@ char * pgdebug_strdup(const char * ptr)
 	char * alloced = strdup(ptr);
 	if (!alloced)
 	{
-		mylog("%s:%s %p error\n", ALCERR, __FUNCTION__, ptr);
+		MYLOG(0, "%s %p error\n", ALCERR, ptr);
 	}
 	else
 	{
@@ -135,7 +133,7 @@ char * pgdebug_strdup(const char * ptr)
 		altbl[tbsize].len = strlen(ptr) + 1;
 		tbsize++;
 	}
-	inolog("%s %p->%p(%s)\n", __FUNCTION__, ptr, alloced, alloced);
+	MYLOG(2, "%p->%p(%s)\n", ptr, alloced, alloced);
 	return alloced;
 }
 
@@ -146,7 +144,7 @@ void pgdebug_free(void * ptr)
 
 	if (!ptr)
 	{
-		mylog("%s:%sing null ptr\n", ALCERR, __FUNCTION__);
+		MYLOG(0, "%s null ptr\n", ALCERR);
 		return;
 	}
 	for (i = 0; i < tbsize; i++)
@@ -165,11 +163,11 @@ void pgdebug_free(void * ptr)
 	}
 	if (! freed)
 	{
-		mylog("%s:%sing not found ptr %p\n", ALCERR, __FUNCTION__, ptr);
+		MYLOG(0, "%s not found ptr %p\n", ALCERR, ptr);
 		return;
 	}
 	else
-		inolog("%sing ptr=%p\n", __FUNCTION__, ptr);
+		MYLOG(2, "ptr=%p\n", ptr);
 	free(ptr);
 }
 
@@ -180,14 +178,14 @@ static BOOL out_check(void *out, size_t len, const char *name)
 
 	for (i = 0; i < tbsize; i++)
 	{
-		if ((UInt4)out < (UInt4)(altbl[i].aladr))
+		if ((ULONG_PTR)out < (ULONG_PTR)(altbl[i].aladr))
 			continue;
-		if ((UInt4)out < (UInt4)(altbl[i].aladr) + altbl[i].len)
+		if ((ULONG_PTR)out < (ULONG_PTR)(altbl[i].aladr) + altbl[i].len)
 		{
-			if ((UInt4)out + len > (UInt4)(altbl[i].aladr) + altbl[i].len)
+			if ((ULONG_PTR)out + len > (ULONG_PTR)(altbl[i].aladr) + altbl[i].len)
 			{
 				ret = FALSE;
-				mylog("%s:%s:out_check found memory buffer overrun %p(%d)>=%p(%d)\n", ALCERR, name, out, len, altbl[i].aladr, altbl[i].len);
+				MYLOG(0, "%s:%s:out_check found memory buffer overrun %p(" FORMAT_SIZE_T ")>=%p(" FORMAT_SIZE_T ")\n", ALCERR, name, out, len, altbl[i].aladr, altbl[i].len);
 			}
 			break;
 		}
@@ -198,7 +196,7 @@ char *pgdebug_strcpy(char *out, const char *in)
 {
 	if (!out || !in)
 	{
-		mylog("%s:%s null pointer out=%p,in=%p\n", ALCERR, __FUNCTION__, out, in);
+		MYLOG(0, "%s null pointer out=%p,in=%p\n", ALCERR, out, in);
 		return NULL;
 	}
 	out_check(out, strlen(in) + 1, __FUNCTION__);
@@ -208,7 +206,7 @@ char *pgdebug_strncpy(char *out, const char *in, size_t len)
 {
 	if (!out || !in)
 	{
-		mylog("%s:%s null pointer out=%p,in=%p\n", ALCERR, __FUNCTION__, out, in);
+		MYLOG(0, "%s null pointer out=%p,in=%p\n", ALCERR, out, in);
 		return NULL;
 	}
 	out_check(out, len, __FUNCTION__);
@@ -218,18 +216,19 @@ char *pgdebug_strncpy_null(char *out, const char *in, size_t len)
 {
 	if (!out || !in)
 	{
-		mylog("%s:%s null pointer out=%p,in=%p\n", ALCERR, __FUNCTION__, out, in);
+		MYLOG(0, "%s null pointer out=%p,in=%p\n", ALCERR, out, in);
 		return NULL;
 	}
 	out_check(out, len, __FUNCTION__);
-	return strncpy_null(out, in, len);
+	strncpy_null(out, in, len);
+	return out;
 }
 
 void *pgdebug_memcpy(void *out, const void *in, size_t len)
 {
 	if (!out || !in)
 	{
-		mylog("%s:%s null pointer out=%p,in=%p\n", ALCERR, __FUNCTION__, out, in);
+		MYLOG(0, "%s null pointer out=%p,in=%p\n", ALCERR, out, in);
 		return NULL;
 	}
 	out_check(out, len, __FUNCTION__);
@@ -240,7 +239,7 @@ void *pgdebug_memset(void *out, int c, size_t len)
 {
 	if (!out)
 	{
-		mylog("%s:%s null pointer out=%p\n", ALCERR, __FUNCTION__, out);
+		MYLOG(0, "%s null pointer out=%p\n", ALCERR, out);
 		return NULL;
 	}
 	out_check(out, len, __FUNCTION__);
@@ -253,16 +252,16 @@ void debug_memory_check(void)
 
 	if (0 == tbsize)
 	{
-		mylog("no memry leak found and max count allocated so far is %d\n", alsize);
+		MYLOG(0, "no memry leak found and max count allocated so far is %d\n", alsize);
 		free(altbl);
 		alsize = 0;
 	}
 	else
 	{
-		mylog("%s:memory leak found check count=%d alloc=%d\n", ALCERR, tbsize, alsize);
+		MYLOG(0, "%s:memory leak found check count=%d alloc=%d\n", ALCERR, tbsize, alsize);
 		for (i = 0; i < tbsize; i++)
 		{
-			mylog("%s:leak = %p(%d)\n", ALCERR, altbl[i].aladr, altbl[i].len);
+			MYLOG(0, "%s:leak = %p(" FORMAT_SIZE_T ")\n", ALCERR, altbl[i].aladr, altbl[i].len);
 		}
 	}
 }

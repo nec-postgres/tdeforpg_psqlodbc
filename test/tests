@@ -96,4 +96,5 @@ TESTBINS = exe/connect-test \
 	exe/encrypt_AB-test \
 	exe/encrypt_bytea_error-test \
 	exe/encrypt_numeric_error-test \
-	exe/encrypt_timestamp_error-test
+	exe/encrypt_timestamp_error-test \
+	exe/encrypt_integer-test

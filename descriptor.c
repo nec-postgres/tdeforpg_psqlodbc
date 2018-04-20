@@ -34,7 +34,7 @@ void	TI_Destructor(TABLE_INFO **ti, int count)
 {
 	int	i;
 
-inolog("TI_Destructor count=%d\n", count);
+MYLOG(DETAIL_LOG_LEVEL, "entering count=%d\n", count);
 	if (ti)
 	{
 		for (i = 0; i < count; i++)
@@ -44,7 +44,7 @@ inolog("TI_Destructor count=%d\n", count);
 				COL_INFO *coli = ti[i]->col_info;
 				if (coli)
 				{
-mylog("!!!refcnt %p:%d -> %d\n", coli, coli->refcnt, coli->refcnt - 1);
+MYLOG(0, "!!!refcnt %p:%d -> %d\n", coli, coli->refcnt, coli->refcnt - 1);
 					coli->refcnt--;
 					if (coli->refcnt <= 0 && 0 == coli->acc_time) /* acc_time == 0 means the table is dropped */
 						free_col_info_contents(coli);
@@ -63,7 +63,7 @@ mylog("!!!refcnt %p:%d -> %d\n", coli, coli->refcnt, coli->refcnt - 1);
 }
 void	FI_Constructor(FIELD_INFO *self, BOOL reuse)
 {
-inolog("FI_Constructor reuse=%d\n", reuse);
+MYLOG(DETAIL_LOG_LEVEL, "entering reuse=%d\n", reuse);
 	if (reuse)
 		FI_Destructor(&self, 1, FALSE);
 	memset(self, 0, sizeof(FIELD_INFO));
@@ -75,7 +75,7 @@ void	FI_Destructor(FIELD_INFO **fi, int count, BOOL freeFI)
 {
 	int	i;
 
-inolog("FI_Destructor count=%d\n", count);
+MYLOG(DETAIL_LOG_LEVEL, "entering count=%d\n", count);
 	if (fi)
 	{
 		for (i = 0; i < count; i++)
@@ -190,13 +190,12 @@ void	DC_Constructor(DescriptorClass *self, BOOL embedded, StatementClass *stmt)
 
 static void ARDFields_free(ARDFields * self)
 {
-inolog("ARDFields_free %p bookmark=%p", self, self->bookmark);
+MYLOG(DETAIL_LOG_LEVEL, "entering %p bookmark=%p\n", self, self->bookmark);
 	if (self->bookmark)
 	{
 		free(self->bookmark);
 		self->bookmark = NULL;
 	}
-inolog(" hey");
 	/*
 	 * the memory pointed to by the bindings is not deallocated by the
 	 * driver but by the application that uses that driver, so we don't
@@ -337,7 +336,7 @@ char CC_add_descriptor(ConnectionClass *self, DescriptorClass *desc)
 	int	new_num_descs;
 	DescriptorClass **descs;
 
-	mylog("CC_add_descriptor: self=%p, desc=%p\n", self, desc);
+	MYLOG(0, "entering self=%p, desc=%p\n", self, desc);
 
 	for (i = 0; i < self->num_descs; i++)
 	{
@@ -376,7 +375,7 @@ PGAPI_AllocDesc(HDBC ConnectionHandle,
 	RETCODE	ret = SQL_SUCCESS;
 	DescriptorClass	*desc;
 
-	mylog("%s: entering...\n", func);
+	MYLOG(0, "entering...\n");
 
 	desc = (DescriptorClass *) malloc(sizeof(DescriptorClass));
 	if (desc)
@@ -403,11 +402,10 @@ PGAPI_AllocDesc(HDBC ConnectionHandle,
 RETCODE SQL_API
 PGAPI_FreeDesc(SQLHDESC DescriptorHandle)
 {
-	CSTR func = "PGAPI_FreeDesc";
 	DescriptorClass *desc = (DescriptorClass *) DescriptorHandle;
 	RETCODE	ret = SQL_SUCCESS;
 
-	mylog("%s: entering...\n", func);
+	MYLOG(0, "entering...\n");
 	DC_Destructor(desc);
 	if (!desc->deschd.embedded)
 	{
@@ -516,7 +514,6 @@ RETCODE	SQL_API
 PGAPI_CopyDesc(SQLHDESC SourceDescHandle,
 			   SQLHDESC TargetDescHandle)
 {
-	CSTR func = "PGAPI_CopyDesc";
 	RETCODE ret = SQL_ERROR;
 	DescriptorClass	*src, *target;
 	DescriptorHeader	*srchd, *targethd;
@@ -524,23 +521,23 @@ PGAPI_CopyDesc(SQLHDESC SourceDescHandle,
 	APDFields	*apd_src, *apd_tgt;
 	IPDFields	*ipd_src, *ipd_tgt;
 
-	mylog("%s: entering...\n", func);
+	MYLOG(0, "entering...\n");
 	src = (DescriptorClass *) SourceDescHandle;
 	target = (DescriptorClass *) TargetDescHandle;
 	srchd = &(src->deschd);
 	targethd = &(target->deschd);
 	if (!srchd->type_defined)
 	{
-		mylog("source type undefined\n");
+		MYLOG(0, "source type undefined\n");
 		DC_set_error(target, DESC_EXEC_ERROR, "source handle type undefined");
 		return ret;
 	}
 	if (targethd->type_defined)
 	{
-inolog("source type=%d -> target type=%d\n", srchd->desc_type, targethd->desc_type);
+MYLOG(DETAIL_LOG_LEVEL, "source type=%d -> target type=%d\n", srchd->desc_type, targethd->desc_type);
 		if (SQL_ATTR_IMP_ROW_DESC == targethd->desc_type)
 		{
-			mylog("can't modify IRD\n");
+			MYLOG(0, "can't modify IRD\n");
 			DC_set_error(target, DESC_EXEC_ERROR, "can't copy to IRD");
 			return ret;
 		}
@@ -548,7 +545,7 @@ inolog("source type=%d -> target type=%d\n", srchd->desc_type, targethd->desc_ty
 		{
 			if (targethd->embedded)
 			{
-				mylog("src type != target type\n");
+				MYLOG(0, "src type != target type\n");
 				DC_set_error(target, DESC_EXEC_ERROR, "copying different type descriptor to embedded one");
 				return ret;
 			}
@@ -559,19 +556,19 @@ inolog("source type=%d -> target type=%d\n", srchd->desc_type, targethd->desc_ty
 	switch (srchd->desc_type)
 	{
 		case SQL_ATTR_APP_ROW_DESC:
-inolog("src=%p target=%p type=%d", src, target, srchd->desc_type);
+MYLOG(DETAIL_LOG_LEVEL, "src=%p target=%p type=%d", src, target, srchd->desc_type);
 			if (!targethd->type_defined)
 			{
 				targethd->desc_type = srchd->desc_type;
 			}
 			ard_src = &(src->ardf);
-inolog(" rowset_size=%d bind_size=%d ope_ptr=%p off_ptr=%p\n",
+MYPRINTF(DETAIL_LOG_LEVEL, " rowset_size=" FORMAT_LEN " bind_size=%d ope_ptr=%p off_ptr=%p\n",
 ard_src->size_of_rowset, ard_src->bind_size,
 ard_src->row_operation_ptr, ard_src->row_offset_ptr);
 			ard_tgt = &(target->ardf);
-inolog(" target=%p", ard_tgt);
+MYPRINTF(DETAIL_LOG_LEVEL, " target=%p", ard_tgt);
 			ARDFields_copy(ard_src, ard_tgt);
-inolog(" offset_ptr=%p\n", ard_tgt->row_offset_ptr);
+MYPRINTF(DETAIL_LOG_LEVEL, " offset_ptr=%p\n", ard_tgt->row_offset_ptr);
 			break;
 		case SQL_ATTR_APP_PARAM_DESC:
 			if (!targethd->type_defined)
@@ -592,7 +589,7 @@ inolog(" offset_ptr=%p\n", ard_tgt->row_offset_ptr);
 			IPDFields_copy(ipd_src, ipd_tgt);
 			break;
 		default:
-			mylog("invalid descriptor handle type=%d\n", srchd->desc_type);
+			MYLOG(0, "invalid descriptor handle type=%d\n", srchd->desc_type);
 			DC_set_error(target, DESC_EXEC_ERROR, "invalid descriptor type");
 			ret = SQL_ERROR;
 	}
@@ -722,8 +719,7 @@ DC_log_error(const char *func, const char *desc, const DescriptorClass *self)
 #define nullcheck(a) (a ? a : "(NULL)")
 	if (self)
 	{
-		qlog("DESCRIPTOR ERROR: func=%s, desc='%s', errnum=%d, errmsg='%s'\n", func, desc, self->deschd.__error_number, nullcheck(self->deschd.__error_message));
-		mylog("DESCRIPTOR ERROR: func=%s, desc='%s', errnum=%d, errmsg='%s'\n", func, desc, self->deschd.__error_number, nullcheck(self->deschd.__error_message));
+		MYLOG(0, "DESCRIPTOR ERROR: func=%s, desc='%s', errnum=%d, errmsg='%s'\n", func, desc, self->deschd.__error_number, nullcheck(self->deschd.__error_message));
 	}
 }
 
@@ -738,12 +734,11 @@ PGAPI_DescError(SQLHDESC hdesc,
 				SQLSMALLINT * pcbErrorMsg,
 				UWORD flag)
 {
-	CSTR func = "PGAPI_DescError";
 	/* CC: return an error of a hdesc  */
 	DescriptorClass *desc = (DescriptorClass *) hdesc;
 	DescriptorHeader *deschd = &(desc->deschd);
 
-	mylog("%s RecN=%d\n", func);
+	MYLOG(0, "entering RecN=%hd\n", RecNumber);
 	deschd->pgerror = DC_create_errorinfo(desc);
 	return ER_ReturnError(deschd->pgerror, RecNumber, szSqlState,
 				pfNativeError, szErrorMsg, cbErrorMsgMax,

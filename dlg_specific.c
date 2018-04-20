@@ -292,7 +292,7 @@ makeConnectString(char *connect_string, const ConnInfo *ci, UWORD len)
 	BOOL		abbrev = (len < 1024) || 0 < ci->force_abbrev_connstr;
 	UInt4		flag;
 
-inolog("force_abbrev=%d abbrev=%d\n", ci->force_abbrev_connstr, abbrev);
+MYLOG(DETAIL_LOG_LEVEL, "force_abbrev=%d abbrev=%d\n", ci->force_abbrev_connstr, abbrev);
 	encode(ci->password, encoded_item, sizeof(encoded_item));
 	/* fundamental info */
 	nlen = MAX_CONNECT_STRING;
@@ -313,7 +313,7 @@ inolog("force_abbrev=%d abbrev=%d\n", ci->force_abbrev_connstr, abbrev);
 	/* extra info */
 	hlen = strlen(connect_string);
 	nlen = MAX_CONNECT_STRING - hlen;
-inolog("hlen=%d", hlen);
+MYLOG(DETAIL_LOG_LEVEL, "hlen=" FORMAT_SSIZE_T "\n", hlen);
 	if (!abbrev)
 	{
 		char	protocol_and[16];
@@ -352,9 +352,6 @@ inolog("hlen=%d", hlen);
 			INI_LOWERCASEIDENTIFIER "=%d;"
 			"%s"		/* INI_PQOPT */
 			"%s"		/* INIKEEPALIVE TIME/INTERVAL */
-#ifdef	WIN32
-			INI_GSSAUTHUSEGSSAPI "=%d;"
-#endif /* WIN32 */
 #ifdef	_HANDLE_ENLIST_IN_DTC_
 			INI_XAOPT "=%d"	/* XAOPT */
 #endif /* _HANDLE_ENLIST_IN_DTC_ */
@@ -387,9 +384,6 @@ inolog("hlen=%d", hlen);
 			,ci->lower_case_identifier
 			,makeBracketConnectString(&pqoptStr, ci->pqopt, INI_PQOPT)
 			,makeKeepaliveConnectString(keepaliveStr, sizeof(keepaliveStr), ci, FALSE)
-#ifdef	WIN32
-			,ci->gssauth_use_gssapi
-#endif /* WIN32 */
 #ifdef	_HANDLE_ENLIST_IN_DTC_
 			,ci->xa_opt
 #endif /* _HANDLE_ENLIST_IN_DTC_ */
@@ -446,8 +440,6 @@ inolog("hlen=%d", hlen);
 			flag |= BIT_USESERVERSIDEPREPARE;
 		if (ci->lower_case_identifier)
 			flag |= BIT_LOWERCASEIDENTIFIER;
-		if (ci->gssauth_use_gssapi)
-			flag |= BIT_GSSAUTHUSEGSSAPI;
 
 		if (ci->sslmode[0])
 		{
@@ -567,7 +559,6 @@ unfoldCXAttribute(ConnInfo *ci, const char *value)
 	ci->bytea_as_longvarbinary = (char)((flag & BIT_BYTEAASLONGVARBINARY) != 0);
 	ci->use_server_side_prepare = (char)((flag & BIT_USESERVERSIDEPREPARE) != 0);
 	ci->lower_case_identifier = (char)((flag & BIT_LOWERCASEIDENTIFIER) != 0);
-	ci->gssauth_use_gssapi = (char)((flag & BIT_GSSAUTHUSEGSSAPI) != 0);
 }
 
 BOOL
@@ -606,7 +597,7 @@ copyConnAttributes(ConnInfo *ci, const char *attribute, const char *value)
 	{
 		ci->password = decode_or_remove_braces(value);
 #ifndef FORCE_PASSWORDE_DISPLAY
-		mylog("%s: key='%s' value='xxxxxxxx'\n", __FUNCTION__, attribute);
+		MYLOG(0, "key='%s' value='xxxxxxxx'\n", attribute);
 		printed = TRUE;
 #endif
 	}
@@ -633,8 +624,8 @@ copyConnAttributes(ConnInfo *ci, const char *attribute, const char *value)
 				/* ignore first part */
 			}
 			ci->rollback_on_error = atoi(ptr + 1);
-			mylog("%s:key='%s' value='%s' rollback_on_error=%d\n",
-				__FUNCTION__, attribute, value, ci->rollback_on_error);
+			MYLOG(0, "key='%s' value='%s' rollback_on_error=%d\n",
+				attribute, value, ci->rollback_on_error);
 			printed = TRUE;
 		}
 	}
@@ -669,8 +660,6 @@ copyConnAttributes(ConnInfo *ci, const char *attribute, const char *value)
 		ci->use_server_side_prepare = atoi(value);
 	else if (stricmp(attribute, INI_LOWERCASEIDENTIFIER) == 0 || stricmp(attribute, ABBR_LOWERCASEIDENTIFIER) == 0)
 		ci->lower_case_identifier = atoi(value);
-	else if (stricmp(attribute, INI_GSSAUTHUSEGSSAPI) == 0 || stricmp(attribute, ABBR_GSSAUTHUSEGSSAPI) == 0)
-		ci->gssauth_use_gssapi = atoi(value);
 	else if (stricmp(attribute, INI_KEEPALIVETIME) == 0 || stricmp(attribute, ABBR_KEEPALIVETIME) == 0)
 		ci->keepalive_idle = atoi(value);
 	else if (stricmp(attribute, INI_KEEPALIVEINTERVAL) == 0 || stricmp(attribute, ABBR_KEEPALIVEINTERVAL) == 0)
@@ -706,8 +695,8 @@ copyConnAttributes(ConnInfo *ci, const char *attribute, const char *value)
 				STRCPY_FIXED(ci->sslmode, SSLMODE_DISABLE);
 				break;
 		}
-		mylog("%s:key='%s' value='%s' set to '%s'\n",
-				__FUNCTION__, attribute, value, ci->sslmode);
+		MYLOG(0, "key='%s' value='%s' set to '%s'\n",
+				attribute, value, ci->sslmode);
 		printed = TRUE;
 	}
 	else if (stricmp(attribute, INI_ABBREVIATE) == 0)
@@ -734,8 +723,8 @@ copyConnAttributes(ConnInfo *ci, const char *attribute, const char *value)
 		{
 			setExtraOptions(ci, value, hex_format);
 		}
-		mylog("%s:key='%s' value='%s'(force_abbrev=%d bde=%d cvt_null_date=%x)\n",
-			__FUNCTION__, attribute, value, ci->force_abbrev_connstr, ci->bde_environment, ci->cvt_null_date_string);
+		MYLOG(0, "key='%s' value='%s'(force_abbrev=%d bde=%d cvt_null_date=%x)\n",
+			attribute, value, ci->force_abbrev_connstr, ci->bde_environment, ci->cvt_null_date_string);
 		printed = TRUE;
 	}
 
@@ -774,7 +763,7 @@ copyConnAttributes(ConnInfo *ci, const char *attribute, const char *value)
 		found = FALSE;
 
 	if (!printed)
-		mylog("%s: key='%s' value='%s'%s\n", __FUNCTION__, attribute,
+		MYLOG(0, "key='%s' value='%s'%s\n", attribute,
 			value, found ? NULL_STRING : " not found");
 
 	return found;
@@ -784,7 +773,7 @@ copyConnAttributes(ConnInfo *ci, const char *attribute, const char *value)
 static void
 getCiDefaults(ConnInfo *ci)
 {
-	mylog("calling %s\n", __FUNCTION__);
+	MYLOG(0, "entering\n");
 
 	ci->drivers.debug = DEFAULT_DEBUG;
 	ci->drivers.commlog = DEFAULT_COMMLOG;
@@ -800,7 +789,6 @@ getCiDefaults(ConnInfo *ci)
 	ci->bytea_as_longvarbinary = DEFAULT_BYTEAASLONGVARBINARY;
 	ci->use_server_side_prepare = DEFAULT_USESERVERSIDEPREPARE;
 	ci->lower_case_identifier = DEFAULT_LOWERCASEIDENTIFIER;
-	ci->gssauth_use_gssapi = DEFAULT_GSSAUTHUSEGSSAPI;
 	STRCPY_FIXED(ci->sslmode, DEFAULT_SSLMODE);
 	ci->force_abbrev_connstr = 0;
 	ci->fake_mss = 0;
@@ -843,22 +831,44 @@ getDriverNameFromDSN(const char *dsn, char *driver_name, int namelen)
 #endif /* WIN32 */
 }
 
+static void Global_defset(GLOBAL_VALUES *comval)
+{
+	comval->fetch_max = FETCH_MAX;
+	comval->unique_index = DEFAULT_UNIQUEINDEX;
+	comval->unknown_sizes = DEFAULT_UNKNOWNSIZES;
+	comval->lie = DEFAULT_LIE;
+	comval->parse = DEFAULT_PARSE;
+	comval->use_declarefetch = DEFAULT_USEDECLAREFETCH;
+	comval->max_varchar_size = MAX_VARCHAR_SIZE;
+	comval->max_longvarchar_size = TEXT_FIELD_SIZE;
+	comval->text_as_longvarchar = DEFAULT_TEXTASLONGVARCHAR;
+	comval->unknowns_as_longvarchar = DEFAULT_UNKNOWNSASLONGVARCHAR;
+	comval->bools_as_char = DEFAULT_BOOLSASCHAR;
+	STRCPY_FIXED(comval->extra_systable_prefixes, DEFAULT_EXTRASYSTABLEPREFIXES);
+	STRCPY_FIXED(comval->protocol, DEFAULT_PROTOCOL);
+}
 
 static void
 get_Ci_Drivers(const char *section, const char *filename, GLOBAL_VALUES *comval);
 
 void getDriversDefaults(const char *drivername, GLOBAL_VALUES *comval)
 {
-	mylog("%s:%p of the driver %s\n", __FUNCTION__, comval, NULL_IF_NULL(drivername));
+	MYLOG(0, "%p of the driver %s\n", comval, NULL_IF_NULL(drivername));
 	get_Ci_Drivers(drivername, ODBCINST_INI, comval);
 	if (NULL != drivername)
 		STR_TO_NAME(comval->drivername, drivername);
 }
 
 void
+getCiAllDefaults(ConnInfo *ci)
+{
+	Global_defset(&(ci->drivers));
+	getCiDefaults(ci);
+}
+
+void
 getDSNinfo(ConnInfo *ci, const char *configDrvrname)
 {
-	CSTR	func = "getDSNinfo";
 	char	   *DSN = ci->dsn;
 	char	temp[LARGE_REGISTRY_LEN];
 	const char *drivername;
@@ -867,7 +877,7 @@ getDSNinfo(ConnInfo *ci, const char *configDrvrname)
  *	If a driver keyword was present, then dont use a DSN and return.
  *	If DSN is null and no driver, then use the default datasource.
  */
-	mylog("%s: DSN=%s driver=%s&%s\n", func, DSN,
+	MYLOG(0, "entering DSN=%s driver=%s&%s\n", DSN,
 		ci->drivername, NULL_IF_NULL(configDrvrname));
 
 	getCiDefaults(ci);
@@ -889,7 +899,7 @@ getDSNinfo(ConnInfo *ci, const char *configDrvrname)
 
 	if (!drivername[0] && DSN[0])
 		getDriverNameFromDSN(DSN, (char *) drivername, sizeof(ci->drivername));
-mylog("drivername=%s\n", drivername);
+MYLOG(0, "drivername=%s\n", drivername);
 	if (!drivername[0])
 		drivername = INVALID_DRIVER;
 	getDriversDefaults(drivername, &(ci->drivers));
@@ -946,7 +956,7 @@ mylog("drivername=%s\n", drivername);
 		{
 			*ptr = '\0';
 			ci->rollback_on_error = atoi(ptr + 1);
-			mylog("rollback_on_error=%d\n", ci->rollback_on_error);
+			MYLOG(0, "rollback_on_error=%d\n", ci->rollback_on_error);
 		}
 	}
 
@@ -1014,9 +1024,6 @@ mylog("drivername=%s\n", drivername);
 	if (SQLGetPrivateProfileString(DSN, INI_LOWERCASEIDENTIFIER, NULL_STRING, temp, sizeof(temp), ODBC_INI) > 0)
 		ci->lower_case_identifier = atoi(temp);
 
-	if (SQLGetPrivateProfileString(DSN, INI_GSSAUTHUSEGSSAPI, NULL_STRING, temp, sizeof(temp), ODBC_INI) > 0)
-		ci->gssauth_use_gssapi = atoi(temp);
-
 	if (SQLGetPrivateProfileString(DSN, INI_KEEPALIVETIME, NULL_STRING, temp, sizeof(temp), ODBC_INI) > 0)
 		if (0 == (ci->keepalive_idle = atoi(temp)))
 			ci->keepalive_idle = -1;
@@ -1040,37 +1047,36 @@ mylog("drivername=%s\n", drivername);
 
 		sscanf(temp, "%x", &val);
 		replaceExtraOptions(ci, val, TRUE);
-		mylog("force_abbrev=%d bde=%d cvt_null_date=%d\n", ci->force_abbrev_connstr, ci->bde_environment, ci->cvt_null_date_string);
+		MYLOG(0, "force_abbrev=%d bde=%d cvt_null_date=%d\n", ci->force_abbrev_connstr, ci->bde_environment, ci->cvt_null_date_string);
 	}
 
 	/* Allow override of odbcinst.ini parameters here */
 	get_Ci_Drivers(DSN, ODBC_INI, &(ci->drivers));
 	STR_TO_NAME(ci->drivers.drivername, drivername);
 
-	qlog("DSN info: DSN='%s',server='%s',port='%s',dbase='%s',user='%s',passwd='%s'\n",
+	MYLOG(DETAIL_LOG_LEVEL, "DSN info: DSN='%s',server='%s',port='%s',dbase='%s',user='%s',passwd='%s'\n",
 		 DSN,
 		 ci->server,
 		 ci->port,
 		 ci->database,
 		 ci->username,
 		 NAME_IS_VALID(ci->password) ? "xxxxx" : "");
-	qlog("          onlyread='%s',showoid='%s',fakeoidindex='%s',showsystable='%s'\n",
+	MYLOG(DETAIL_LOG_LEVEL, "          onlyread='%s',showoid='%s',fakeoidindex='%s',showsystable='%s'\n",
 		 ci->onlyread,
 		 ci->show_oid_column,
 		 ci->fake_oid_index,
 		 ci->show_system_tables);
 
-	if (get_qlog())
 	{
 #ifdef	NOT_USED
 		char	*enc = (char *) check_client_encoding(ci->conn_settings);
 
-		qlog("          conn_settings='%s', conn_encoding='%s'\n", ci->conn_settings,
+		MYLOG(DETAIL_LOG_LEVEL, "          conn_settings='%s', conn_encoding='%s'\n", ci->conn_settings,
 			NULL != enc ? enc : "(null)");
 		if (NULL != enc)
 			free(enc);
 #endif /* NOT_USED */
-		qlog("          translation_dll='%s',translation_option='%s'\n",
+		MYLOG(DETAIL_LOG_LEVEL, "          translation_dll='%s',translation_option='%s'\n",
 			ci->translation_dll,
 			ci->translation_option);
 	}
@@ -1286,11 +1292,6 @@ writeDSNinfo(const ConnInfo *ci)
 								 INI_LOWERCASEIDENTIFIER,
 								 temp,
 								 ODBC_INI);
-	ITOA_FIXED(temp, ci->gssauth_use_gssapi);
-	SQLWritePrivateProfileString(DSN,
-								 INI_GSSAUTHUSEGSSAPI,
-								 temp,
-								 ODBC_INI);
 	SQLWritePrivateProfileString(DSN,
 								 INI_SSLMODE,
 								 ci->sslmode,
@@ -1319,12 +1320,11 @@ writeDSNinfo(const ConnInfo *ci)
 static void
 get_Ci_Drivers(const char *section, const char *filename, GLOBAL_VALUES *comval)
 {
-	CSTR	func = "get_Ci_Drivers";
 	char		temp[256];
 	BOOL	inst_position = (stricmp(filename, ODBCINST_INI) == 0);
 
 	if (0 != strcmp(ODBCINST_INI, filename))
-		mylog("%s:setting %s position of %s(%p)\n", func, filename, section, comval);
+		MYLOG(0, "setting %s position of %s(%p)\n", filename, section, comval);
 
 	/*
 	 * It's not appropriate to handle debug or commlog here.
@@ -1332,21 +1332,7 @@ get_Ci_Drivers(const char *section, const char *filename, GLOBAL_VALUES *comval)
 	 */
 
 	if (inst_position)
-	{
-		comval->fetch_max = FETCH_MAX;
-		comval->unique_index = DEFAULT_UNIQUEINDEX;
-		comval->unknown_sizes = DEFAULT_UNKNOWNSIZES;
-		comval->lie = DEFAULT_LIE;
-		comval->parse = DEFAULT_PARSE;
-		comval->use_declarefetch = DEFAULT_USEDECLAREFETCH;
-		comval->max_varchar_size = MAX_VARCHAR_SIZE;
-		comval->max_longvarchar_size = TEXT_FIELD_SIZE;
-		comval->text_as_longvarchar = DEFAULT_TEXTASLONGVARCHAR;
-		comval->unknowns_as_longvarchar = DEFAULT_UNKNOWNSASLONGVARCHAR;
-		comval->bools_as_char = DEFAULT_BOOLSASCHAR;
-		STRCPY_FIXED(comval->extra_systable_prefixes, DEFAULT_EXTRASYSTABLEPREFIXES);
-		STRCPY_FIXED(comval->protocol, DEFAULT_PROTOCOL);
-	}
+		Global_defset(comval);
 	if (NULL == section || strcmp(section, INVALID_DRIVER) == 0)
 		return;
 	/*
@@ -1422,7 +1408,7 @@ get_Ci_Drivers(const char *section, const char *filename, GLOBAL_VALUES *comval)
 	if (strcmp(temp, ENTRY_TEST))
 		STRCPY_FIXED(comval->extra_systable_prefixes, temp);
 
-	mylog("comval=%p comval->extra_systable_prefixes = '%s'\n", comval, comval->extra_systable_prefixes);
+	MYLOG(0, "comval=%p comval->extra_systable_prefixes = '%s'\n", comval, comval->extra_systable_prefixes);
 
 
 	/* Dont allow override of an override! */
@@ -1677,7 +1663,7 @@ char *extract_extra_attribute_setting(const pgNAME setting, const char *attr)
 		return NULL;
 	memcpy(rptr, sptr, len);
 	rptr[len] = '\0';
-	mylog("extracted a %s '%s' from %s\n", attr, rptr, str);
+	MYLOG(0, "extracted a %s '%s' from %s\n", attr, rptr, str);
 	return rptr;
 }
 
@@ -1706,8 +1692,7 @@ CC_conninfo_release(ConnInfo *conninfo)
 void
 CC_conninfo_init(ConnInfo *conninfo, UInt4 option)
 {
-	CSTR	func = "CC_conninfo_init";
-	mylog("%s opt=%d\n", func, option);
+	MYLOG(0, "entering opt=%d\n", option);
 
 	if (0 != (CLEANUP_FOR_REUSE & option))
 		CC_conninfo_release(conninfo);
@@ -1728,7 +1713,6 @@ CC_conninfo_init(ConnInfo *conninfo, UInt4 option)
 	conninfo->accessible_only = -1;
 	conninfo->ignore_round_trip_time = -1;
 	conninfo->disable_keepalive = -1;
-	conninfo->gssauth_use_gssapi = -1;
 	conninfo->keepalive_idle = -1;
 	conninfo->keepalive_interval = -1;
 	conninfo->wcs_debug = -1;
@@ -1773,7 +1757,7 @@ void	copy_globals(GLOBAL_VALUES *to, const GLOBAL_VALUES *from)
 	CORR_STRCPY(extra_systable_prefixes);
 	CORR_STRCPY(protocol);
 
-	mylog("copy_globals driver=%s\n", SAFE_NAME(to->drivername));
+	MYLOG(0, "driver=%s\n", SAFE_NAME(to->drivername));
 }
 
 void	finalize_globals(GLOBAL_VALUES *glbv)
@@ -1825,7 +1809,6 @@ CC_copy_conninfo(ConnInfo *ci, const ConnInfo *sci)
 	CORR_VALCPY(accessible_only);
 	CORR_VALCPY(ignore_round_trip_time);
 	CORR_VALCPY(disable_keepalive);
-	CORR_VALCPY(gssauth_use_gssapi);
 	CORR_VALCPY(extra_opts);
 	CORR_VALCPY(keepalive_idle);
 	CORR_VALCPY(keepalive_interval);

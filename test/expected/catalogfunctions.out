@@ -36,7 +36,7 @@ contrib_regression	public	byteatab	TABLE
 contrib_regression	public	cipher_key_table	TABLE	
 contrib_regression	public	enc_byteatab	TABLE	
 contrib_regression	public	intervaltable	TABLE	
-contrib_regression	public	keyid_table	TABLE	
+contrib_regression	public	key_management_table	TABLE	
 contrib_regression	public	lo_test_tab	TABLE	
 contrib_regression	public	testforeign	FOREIGN TABLE	
 contrib_regression	public	testmatview	MATVIEW	
@@ -81,7 +81,7 @@ contrib_regression	public	cipher_key_table	tenant_group_id	-5	int8
 contrib_regression	public	cipher_key_table	version	5	int2
 contrib_regression	public	cipher_key_table	key	-4	bytea
 contrib_regression	public	cipher_key_table	algorithm	-1	text
-contrib_regression	public	cipher_key_table	using_kms	12	bool
+contrib_regression	public	cipher_key_table	mode	5	int2
 contrib_regression	public	cipher_key_table_pkey	tenant_group_id	-5	int8
 contrib_regression	public	cipher_key_table_pkey	version	5	int2
 contrib_regression	public	enc_byteatab	id	4	int4
@@ -89,10 +89,9 @@ contrib_regression	public	enc_byteatab	t	12	encrypt_bytea
 contrib_regression	public	intervaltable	id	4	int4
 contrib_regression	public	intervaltable	iv	12	interval
 contrib_regression	public	intervaltable	d	12	varchar
-contrib_regression	public	keyid_table	keyid	-1	text
-contrib_regression	public	keyid_table	tenant_group_id	-5	int8
-contrib_regression	public	keyid_table_pkey	keyid	-1	text
-contrib_regression	public	keyid_table_pkey	tenant_group_id	-5	int8
+contrib_regression	public	key_management_table	tenant_group_id	-5	int8
+contrib_regression	public	key_management_table	management_key	-4	bytea
+contrib_regression	public	key_management_table_pkey	tenant_group_id	-5	int8
 contrib_regression	public	lo_test_tab	id	4	int4
 contrib_regression	public	lo_test_tab	large_data	-4	lo
 contrib_regression	public	testforeign	c1	4	int4

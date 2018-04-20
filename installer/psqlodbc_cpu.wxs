@@ -37,7 +37,7 @@
 <!-- Product details -->
 
   <Product
-    Manufacturer="PostgreSQL Global Development Group"
+    Manufacturer="NEC Corporation"
     Id="$(var.PRODUCTCODE)"
     UpgradeCode="$(var.UPGCOD)"
     Name="$(var.PKGNAME)"
@@ -48,8 +48,8 @@
 
     <Package
       Keywords="PostgreSQL, ODBC"
-      Comments="PostgreSQL ODBC Driver"
-      Manufacturer="PostgreSQL Global Development Group"
+      Comments="TDEforPG supported PostgreSQL ODBC Driver"
+      Manufacturer="NEC Corporation"
       InstallerVersion="300"
       Platform="$(var.Platform)"
       Languages="1033"

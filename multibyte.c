@@ -188,7 +188,7 @@ check_client_encoding(const pgNAME conn_settings)
 				}
 				else
 				{
-					for (sptr = cptr; *cptr && ';' != *cptr && !isspace((unsigned char) *cptr); cptr++) ;
+					for (sptr = cptr; ';' != *cptr && IS_NOT_SPACE(*cptr); cptr++) ;
 				}
 				len = cptr - sptr;
 				if (';' == *cptr)
@@ -204,7 +204,7 @@ check_client_encoding(const pgNAME conn_settings)
 		return NULL;
 	memcpy(rptr, sptr, len);
 	rptr[len] = '\0';
-	mylog("extracted a client_encoding '%s' from conn_settings\n", rptr);
+	MYLOG(0, "extracted a client_encoding '%s' from conn_settings\n", rptr);
 	return rptr;
 }
 
@@ -502,7 +502,7 @@ derive_locale_encoding(const char *dbencoding)
 		ptr++;
 		if ((enc_no= pg_char_to_encoding(ptr)) >= 0)
 			wenc = pg_encoding_to_char(enc_no);
-		mylog("%s locale=%s enc=%s\n", __FUNCTION__, loc, wenc ? wenc : "(null)");
+		MYLOG(0, "locale=%s enc=%s\n", loc, wenc ? wenc : "(null)");
 	}
 #endif /* WIN32 */
 	return wenc;
@@ -511,7 +511,7 @@ derive_locale_encoding(const char *dbencoding)
 void encoded_str_constr(encoded_str *encstr, int ccsc, const char *str)
 {
 	encstr->ccsc = ccsc;
-	encstr->encstr = str;
+	encstr->encstr = (const UCHAR *) str;
 	encstr->pos = -1;
 	encstr->ccst = 0;
 }
@@ -519,6 +519,8 @@ int encoded_nextchar(encoded_str *encstr)
 {
 	int	chr;
 
+	if (encstr->pos >= 0 && !encstr->encstr[encstr->pos])
+		return 0;
 	chr = encstr->encstr[++encstr->pos];
 	encstr->ccst = pg_CS_stat(encstr->ccst, (unsigned int) chr, encstr->ccsc);
 	return chr;

@@ -46,7 +46,7 @@ PGAPI_RowCount(HSTMT hstmt,
 	StatementClass *stmt = (StatementClass *) hstmt;
 	QResultClass *res;
 
-	mylog("%s: entering...\n", func);
+	MYLOG(0, "entering...\n");
 	if (!stmt)
 	{
 		SC_log_error(func, NULL_STRING, NULL);
@@ -55,7 +55,7 @@ PGAPI_RowCount(HSTMT hstmt,
 	if (stmt->proc_return > 0)
 	{
 		*pcrow = 0;
-		inolog("returning RowCount=%d\n", *pcrow);
+		MYLOG(DETAIL_LOG_LEVEL, "returning RowCount=" FORMAT_LEN "\n", *pcrow);
 		return SQL_SUCCESS;
 	}
 
@@ -70,14 +70,14 @@ PGAPI_RowCount(HSTMT hstmt,
 		if (res->recent_processed_row_count >= 0)
 		{
 			*pcrow = res->recent_processed_row_count;
-			mylog("**** %s: THE ROWS: *pcrow = %d\n", func, *pcrow);
+			MYLOG(0, "**** THE ROWS: *pcrow = " FORMAT_LEN "\n", *pcrow);
 
 			return SQL_SUCCESS;
 		}
 		else if (QR_NumResultCols(res) > 0)
 		{
 			*pcrow = QR_get_cursor(res) ? -1 : QR_get_num_total_tuples(res) - res->dl_count;
-			mylog("RowCount=%d\n", *pcrow);
+			MYLOG(0, "RowCount=" FORMAT_LEN "\n", *pcrow);
 			return SQL_SUCCESS;
 		}
 	}
@@ -95,7 +95,7 @@ SC_describe_ok(StatementClass *stmt, BOOL build_fi, int col_idx, const char *fun
 	num_fields = SC_describe(stmt);
 	result = SC_get_Curres(stmt);
 
-	mylog("%s: result = %p, status = %d, numcols = %d\n", func, result, stmt->status, result != NULL ? QR_NumResultCols(result) : -1);
+	MYLOG(0, "entering result = %p, status = %d, numcols = %d\n", result, stmt->status, result != NULL ? QR_NumResultCols(result) : -1);
 	/****if ((!result) || ((stmt->status != STMT_FINISHED) && (stmt->status != STMT_PREMATURE))) ****/
 	if (!QR_command_maybe_successful(result) || num_fields < 0)
 	{
@@ -110,10 +110,10 @@ SC_describe_ok(StatementClass *stmt, BOOL build_fi, int col_idx, const char *fun
 		FIELD_INFO	*fi;
 		TABLE_INFO	*ti = NULL;
 
-inolog("build_fi=%d reloid=%u\n", build_fi, reloid);
+MYLOG(DETAIL_LOG_LEVEL, "build_fi=%d reloid=%u\n", build_fi, reloid);
 		if (build_fi && 0 != QR_get_attid(result, col_idx))
 			getCOLIfromTI(func, NULL, stmt, reloid, &ti);
-inolog("nfields=%d\n", irdflds->nfields);
+MYLOG(DETAIL_LOG_LEVEL, "nfields=%d\n", irdflds->nfields);
 		if (irdflds->fi && col_idx < (int) irdflds->nfields)
 		{
 			fi = irdflds->fi[col_idx];
@@ -150,7 +150,7 @@ PGAPI_NumResultCols(HSTMT hstmt,
 	char		parse_ok;
 	RETCODE		ret = SQL_SUCCESS;
 
-	mylog("%s: entering...\n", func);
+	MYLOG(0, "entering...\n");
 	if (!stmt)
 	{
 		SC_log_error(func, NULL_STRING, NULL);
@@ -171,7 +171,7 @@ PGAPI_NumResultCols(HSTMT hstmt,
 	{
 		if (SC_parsed_status(stmt) == STMT_PARSE_NONE)
 		{
-			mylog("%s: calling parse_statement on stmt=%p\n", func, stmt);
+			MYLOG(0, "calling parse_statement on stmt=%p\n", stmt);
 			parse_statement(stmt, FALSE);
 		}
 
@@ -179,7 +179,7 @@ PGAPI_NumResultCols(HSTMT hstmt,
 		{
 			parse_ok = TRUE;
 			*pccol = SC_get_IRDF(stmt)->nfields;
-			mylog("PARSE: %s: *pccol = %d\n", func, *pccol);
+			MYLOG(0, "PARSE: *pccol = %d\n", *pccol);
 		}
 	}
 
@@ -235,7 +235,7 @@ PGAPI_DescribeCol(HSTMT hstmt,
 	int			len = 0;
 	RETCODE		result = SQL_SUCCESS;
 
-	mylog("%s: entering.%d..\n", func, icol);
+	MYLOG(0, "entering.%d..\n", icol);
 
 	if (!stmt)
 	{
@@ -255,7 +255,7 @@ PGAPI_DescribeCol(HSTMT hstmt,
 	{
 		SQLSMALLINT	fType = stmt->options.use_bookmarks == SQL_UB_VARIABLE ? SQL_BINARY : SQL_INTEGER;
 
-inolog("answering bookmark info\n");
+MYLOG(DETAIL_LOG_LEVEL, "answering bookmark info\n");
 		if (szColName && cbColNameMax > 0)
 			*szColName = '\0';
 		if (pcbColName)
@@ -286,11 +286,11 @@ inolog("answering bookmark info\n");
 	{
 		if (SC_parsed_status(stmt) == STMT_PARSE_NONE)
 		{
-			mylog("%s: calling parse_statement on stmt=%p\n", func, stmt);
+			MYLOG(0, "calling parse_statement on stmt=%p\n", stmt);
 			parse_statement(stmt, FALSE);
 		}
 
-		mylog("PARSE: DescribeCol: icol=%d, stmt=%p, stmt->nfld=%d, stmt->fi=%p\n", icol, stmt, irdflds->nfields, irdflds->fi);
+		MYLOG(0, "PARSE: icol=%d, stmt=%p, stmt->nfld=%d, stmt->fi=%p\n", icol, stmt, irdflds->nfields, irdflds->fi);
 
 		if (SC_parsed_status(stmt) != STMT_PARSE_FATAL && irdflds->fi)
 		{
@@ -302,7 +302,7 @@ inolog("answering bookmark info\n");
 				result = SQL_ERROR;
 				goto cleanup;
 			}
-			mylog("DescribeCol: getting info for icol=%d\n", icol);
+			MYLOG(0, "getting info for icol=%d\n", icol);
 		}
 	}
 
@@ -366,7 +366,7 @@ inolog("answering bookmark info\n");
 			decimal_digits = pgtype_decimal_digits(stmt, fieldtype, icol);
 		}
 
-		mylog("PARSE: fieldtype=%d, col_name='%s', column_size=%d\n", fieldtype, NULL_IF_NULL(col_name), column_size);
+		MYLOG(0, "PARSE: fieldtype=%u, col_name='%s', column_size=" FORMAT_LEN "\n", fieldtype, NULL_IF_NULL(col_name), column_size);
 	}
 	else
 	{
@@ -377,9 +377,9 @@ inolog("answering bookmark info\n");
 		decimal_digits = pgtype_decimal_digits(stmt, fieldtype, icol);
 	}
 
-	mylog("describeCol: col %d fieldname = '%s'\n", icol, NULL_IF_NULL(col_name));
-	mylog("describeCol: col %d fieldtype = %d\n", icol, fieldtype);
-	mylog("describeCol: col %d column_size = %d\n", icol, column_size);
+	MYLOG(0, "col %d fieldname = '%s'\n", icol, NULL_IF_NULL(col_name));
+	MYLOG(0, "col %d fieldtype = %d\n", icol, fieldtype);
+	MYLOG(0, "col %d column_size = " FORMAT_LEN "\n", icol, column_size);
 
 	result = SQL_SUCCESS;
 
@@ -412,7 +412,7 @@ inolog("answering bookmark info\n");
 	{
 		*pfSqlType = pgtype_to_concise_type(stmt, fieldtype, icol, unknown_sizes);
 
-		mylog("describeCol: col %d *pfSqlType = %d\n", icol, *pfSqlType);
+		MYLOG(0, "col %d *pfSqlType = %d\n", icol, *pfSqlType);
 	}
 
 	/*
@@ -425,7 +425,7 @@ inolog("answering bookmark info\n");
 
 		*pcbColDef = column_size;
 
-		mylog("describeCol: col %d  *pcbColDef = %d\n", icol, *pcbColDef);
+		MYLOG(0, "Col: col %d  *pcbColDef = " FORMAT_ULEN "\n", icol, *pcbColDef);
 	}
 
 	/*
@@ -437,7 +437,7 @@ inolog("answering bookmark info\n");
 			decimal_digits = 0;
 
 		*pibScale = (SQLSMALLINT) decimal_digits;
-		mylog("describeCol: col %d  *pibScale = %d\n", icol, *pibScale);
+		MYLOG(0, "col %d  *pibScale = %d\n", icol, *pibScale);
 	}
 
 	/*
@@ -450,7 +450,7 @@ inolog("answering bookmark info\n");
 		else
 			*pfNullable = fi ? fi->nullable : pgtype_nullable(conn, fieldtype);
 
-		mylog("describeCol: col %d  *pfNullable = %d\n", icol, *pfNullable);
+		MYLOG(0, "col %d  *pfNullable = %d\n", icol, *pfNullable);
 	}
 
 cleanup:
@@ -487,7 +487,7 @@ PGAPI_ColAttributes(HSTMT hstmt,
 	QResultClass	*res;
 	BOOL		stmt_updatable;
 
-	mylog("%s: entering..col=%d %d len=%d.\n", func, icol, fDescType,
+	MYLOG(0, "entering..col=%d %d len=%d.\n", icol, fDescType,
 				cbDescMax);
 
 	if (!stmt)
@@ -516,7 +516,7 @@ PGAPI_ColAttributes(HSTMT hstmt,
 	res = SC_get_Curres(stmt);
 	if (0 == icol && SQL_DESC_COUNT != fDescType) /* bookmark column */
 	{
-inolog("answering bookmark info\n");
+MYLOG(DETAIL_LOG_LEVEL, "answering bookmark info\n");
 		switch (fDescType)
 		{
 			case SQL_DESC_OCTET_LENGTH:
@@ -545,7 +545,7 @@ inolog("answering bookmark info\n");
 	{
 		if (SC_parsed_status(stmt) == STMT_PARSE_NONE)
 		{
-			mylog("%s: calling parse_statement\n", func);
+			MYLOG(0, "calling parse_statement\n");
 			parse_statement(stmt, FALSE);
 		}
 
@@ -631,7 +631,7 @@ inolog("answering bookmark info\n");
 		field_type = getEffectiveOid(conn, fi);
 	}
 
-	mylog("colAttr: col %d field_type=%d fi,ti=%p,%p\n", col_idx, field_type, fi, ti);
+	MYLOG(0, "col %d field_type=%d fi,ti=%p,%p\n", col_idx, field_type, fi, ti);
 
 #ifdef SUPPRESS_LONGEST_ON_CURSORS
 	if (UNKNOWNS_AS_LONGEST == unknown_sizes)
@@ -657,7 +657,7 @@ inolog("answering bookmark info\n");
 				value = pgtype_auto_increment(conn, field_type);
 			if (value == -1)	/* non-numeric becomes FALSE (ODBC Doc) */
 				value = FALSE;
-			mylog("AUTO_INCREMENT=%d\n", value);
+			MYLOG(0, "AUTO_INCREMENT=" FORMAT_LEN "\n", value);
 
 			break;
 
@@ -673,7 +673,7 @@ inolog("answering bookmark info\n");
 		case SQL_COLUMN_DISPLAY_SIZE: /* == SQL_DESC_DISPLAY_SIZE */
 			value = (USE_FI(fi, unknown_sizes) && 0 != fi->display_size) ? fi->display_size : pgtype_display_size(stmt, field_type, col_idx, unknown_sizes);
 
-			mylog("%s: col %d, display_size= %d\n", func, col_idx, value);
+			MYLOG(0, "col %d, display_size= " FORMAT_LEN "\n", col_idx, value);
 
 			break;
 
@@ -682,18 +682,20 @@ inolog("answering bookmark info\n");
 			{
 				p = GET_NAME(fi->column_alias);
 
-				mylog("%s: COLUMN_LABEL = '%s'\n", func, p);
+				MYLOG(0, "COLUMN_LABEL = '%s'\n", p);
 				break;
 			}
 			/* otherwise same as column name -- FALL THROUGH!!! */
 
 		case SQL_DESC_NAME:
-inolog("fi=%p", fi);
-if (fi)
-inolog(" (%s,%s)", PRINT_NAME(fi->column_alias), PRINT_NAME(fi->column_name));
+			MYLOG(DETAIL_LOG_LEVEL, "fi=%p (alias, name)=", fi);
+			if (fi)
+				MYPRINTF(DETAIL_LOG_LEVEL, "(%s,%s)\n", PRINT_NAME(fi->column_alias), PRINT_NAME(fi->column_name));
+			else
+				MYPRINTF(DETAIL_LOG_LEVEL, "NULL\n");
 			p = fi ? (NAME_IS_NULL(fi->column_alias) ? SAFE_NAME(fi->column_name) : GET_NAME(fi->column_alias)) : QR_get_fieldname(res, col_idx);
 
-			mylog("%s: COLUMN_NAME = '%s'\n", func, p);
+			MYLOG(0, "COLUMN_NAME = '%s'\n", p);
 			break;
 
 		case SQL_COLUMN_LENGTH:
@@ -702,12 +704,12 @@ inolog(" (%s,%s)", PRINT_NAME(fi->column_alias), PRINT_NAME(fi->column_name));
 			/* if (-1 == value)  I'm not sure which is right */
 				value = 0;
 
-			mylog("%s: col %d, column_length = %d\n", func, col_idx, value);
+			MYLOG(0, "col %d, column_length = " FORMAT_LEN "\n", col_idx, value);
 			break;
 
 		case SQL_COLUMN_MONEY: /* == SQL_DESC_FIXED_PREC_SCALE */
 			value = pgtype_money(conn, field_type);
-inolog("COLUMN_MONEY=%d\n", value);
+MYLOG(DETAIL_LOG_LEVEL, "COLUMN_MONEY=" FORMAT_LEN "\n", value);
 			break;
 
 		case SQL_DESC_NULLABLE:
@@ -715,12 +717,12 @@ inolog("COLUMN_MONEY=%d\n", value);
 				value = TRUE;
 			else
 				value = fi ? fi->nullable : pgtype_nullable(conn, field_type);
-inolog("COLUMN_NULLABLE=%d\n", value);
+MYLOG(DETAIL_LOG_LEVEL, "COLUMN_NULLABLE=" FORMAT_LEN "\n", value);
 			break;
 
 		case SQL_COLUMN_OWNER_NAME: /* == SQL_DESC_SCHEMA_NAME */
 			p = ti ? SAFE_NAME(ti->schema_name) : NULL_STRING;
-			mylog("%s: SCHEMA_NAME = '%s'\n", func, p);
+			MYLOG(0, "SCHEMA_NAME = '%s'\n", p);
 			break;
 
 		case SQL_COLUMN_PRECISION: /* in 2.x */
@@ -728,7 +730,7 @@ inolog("COLUMN_NULLABLE=%d\n", value);
 			if (value < 0)
 				value = 0;
 
-			mylog("%s: col %d, column_size = %d\n", func, col_idx, value);
+			MYLOG(0, "col %d, column_size = " FORMAT_LEN "\n", col_idx, value);
 			break;
 
 		case SQL_COLUMN_QUALIFIER_NAME: /* == SQL_DESC_CATALOG_NAME */
@@ -737,7 +739,7 @@ inolog("COLUMN_NULLABLE=%d\n", value);
 
 		case SQL_COLUMN_SCALE: /* in 2.x */
 			value = pgtype_decimal_digits(stmt, field_type, col_idx);
-inolog("COLUMN_SCALE=%d\n", value);
+MYLOG(DETAIL_LOG_LEVEL, "COLUMN_SCALE=" FORMAT_LEN "\n", value);
 			if (value < 0)
 				value = 0;
 			break;
@@ -749,12 +751,12 @@ inolog("COLUMN_SCALE=%d\n", value);
 		case SQL_COLUMN_TABLE_NAME: /* == SQL_DESC_TABLE_NAME */
 			p = ti ? SAFE_NAME(ti->table_name) : NULL_STRING;
 
-			mylog("%s: TABLE_NAME = '%s'\n", func, p);
+			MYLOG(0, "TABLE_NAME = '%s'\n", p);
 			break;
 
 		case SQL_COLUMN_TYPE: /* == SQL_DESC_CONCISE_TYPE */
 			value = pgtype_to_concise_type(stmt, field_type, col_idx, unknown_sizes);
-			mylog("COLUMN_TYPE=%d\n", value);
+			MYLOG(0, "COLUMN_TYPE=" FORMAT_LEN "\n", value);
 			break;
 
 		case SQL_COLUMN_TYPE_NAME: /* == SQL_DESC_TYPE_NAME */
@@ -791,31 +793,31 @@ inolog("COLUMN_SCALE=%d\n", value);
 					value = SQL_ATTR_READONLY;
 			}
 
-			mylog("%s: UPDATEABLE = %d\n", func, value);
+			MYLOG(0, "%s: UPDATEABLE = " FORMAT_LEN "\n", func, value);
 			break;
 		case SQL_DESC_BASE_COLUMN_NAME:
 
 			p = fi ? SAFE_NAME(fi->column_name) : QR_get_fieldname(res, col_idx);
 
-			mylog("%s: BASE_COLUMN_NAME = '%s'\n", func, p);
+			MYLOG(0, "BASE_COLUMN_NAME = '%s'\n", p);
 			break;
 		case SQL_DESC_BASE_TABLE_NAME: /* the same as TABLE_NAME ok ? */
 			p = ti ? SAFE_NAME(ti->table_name) : NULL_STRING;
 
-			mylog("%s: BASE_TABLE_NAME = '%s'\n", func, p);
+			MYLOG(0, "BASE_TABLE_NAME = '%s'\n", p);
 			break;
 		case SQL_DESC_LENGTH: /* different from SQL_COLUMN_LENGTH */
 			value = (fi && column_size > 0) ? column_size : pgtype_desclength(stmt, field_type, col_idx, unknown_sizes);
 			if (-1 == value)
 				value = 0;
 
-			mylog("%s: col %d, desc_length = %d\n", func, col_idx, value);
+			MYLOG(0, "col %d, desc_length = " FORMAT_LEN "\n", col_idx, value);
 			break;
 		case SQL_DESC_OCTET_LENGTH:
 			value = (USE_FI(fi, unknown_sizes) && fi->length > 0) ? fi->length : pgtype_attr_transfer_octet_length(conn, field_type, column_size, unknown_sizes);
 			if (-1 == value)
 				value = 0;
-			mylog("%s: col %d, octet_length = %d\n", func, col_idx, value);
+			MYLOG(0, "col %d, octet_length = " FORMAT_LEN "\n", col_idx, value);
 			break;
 		case SQL_DESC_PRECISION: /* different from SQL_COLUMN_PRECISION */
 			if (value = FI_precision(fi), value <= 0)
@@ -823,7 +825,7 @@ inolog("COLUMN_SCALE=%d\n", value);
 			if (value < 0)
 				value = 0;
 
-			mylog("%s: col %d, desc_precision = %d\n", func, col_idx, value);
+			MYLOG(0, "col %d, desc_precision = " FORMAT_LEN "\n", col_idx, value);
 			break;
 		case SQL_DESC_SCALE: /* different from SQL_COLUMN_SCALE */
 			value = pgtype_scale(stmt, field_type, col_idx);
@@ -859,7 +861,7 @@ inolog("COLUMN_SCALE=%d\n", value);
 					SC_set_SS_columnkey(stmt);
 				}
 				value = fi->columnkey;
-				mylog("%s:SS_COLUMN_KEY=%d\n", func, value);
+				MYLOG(0, "SS_COLUMN_KEY=" FORMAT_LEN "\n", value);
 				break;
 			}
 			SC_set_error(stmt, STMT_OPTION_NOT_FOR_THE_DRIVER, "this request may be for MS SQL Server", func);
@@ -925,7 +927,7 @@ PGAPI_GetData(HSTMT hstmt,
 	SQLCHAR		dum_rgb[2] = "\0\0";
 #endif	/* WITH_UNIXODBC */
 
-	mylog("%s: enter, stmt=%p icol=%d\n", func, stmt, icol);
+	MYLOG(0, "entering stmt=%p icol=%d\n", stmt, icol);
 
 	if (!stmt)
 	{
@@ -966,7 +968,7 @@ PGAPI_GetData(HSTMT hstmt,
 		if (binfo)
 		{
 			target_type = binfo->returntype;
-			mylog("SQL_ARD_TYPE=%d\n", target_type);
+			MYLOG(0, "SQL_ARD_TYPE=%d\n", target_type);
 			precision = binfo->precision;
 		}
 		else
@@ -992,7 +994,7 @@ PGAPI_GetData(HSTMT hstmt,
 			case SQL_C_VARBOOKMARK:
 				break;
 			default:
-inolog("GetData Column 0 is type %d not of type SQL_C_BOOKMARK", target_type);
+MYLOG(DETAIL_LOG_LEVEL, "GetData Column 0 is type %d not of type SQL_C_BOOKMARK\n", target_type);
 				SC_set_error(stmt, STMT_PROGRAM_TYPE_OUT_OF_RANGE, "Column 0 is not of type SQL_C_BOOKMARK", func);
 				return SQL_ERROR;
 		}
@@ -1026,14 +1028,14 @@ inolog("GetData Column 0 is type %d not of type SQL_C_BOOKMARK", target_type);
 			result = SQL_ERROR;
 			goto cleanup;
 		}
-		mylog("     num_rows = %d\n", num_rows);
+		MYLOG(0, "     num_rows = " FORMAT_LEN "\n", num_rows);
 
 		if (!get_bookmark)
 		{
 			SQLLEN	curt = GIdx2CacheIdx(stmt->currTuple, stmt, res);
 			value = QR_get_value_backend_row(res, curt, icol);
-inolog("currT=%d base=%d rowset=%d\n", stmt->currTuple, QR_get_rowstart_in_cache(res), SC_get_rowset_start(stmt));
-			mylog("     value = '%s'\n", NULL_IF_NULL(value));
+MYLOG(DETAIL_LOG_LEVEL, "currT=" FORMAT_LEN " base=" FORMAT_LEN " rowset=" FORMAT_LEN "\n", stmt->currTuple, QR_get_rowstart_in_cache(res), SC_get_rowset_start(stmt));
+			MYLOG(0, "     value = '%s'\n", NULL_IF_NULL(value));
 		}
 	}
 	else
@@ -1052,7 +1054,7 @@ inolog("currT=%d base=%d rowset=%d\n", stmt->currTuple, QR_get_rowstart_in_cache
 			SQLLEN	curt = GIdx2CacheIdx(stmt->currTuple, stmt, res);
 			value = QR_get_value_backend_row(res, curt, icol);
 		}
-		mylog("  socket: value = '%s'\n", NULL_IF_NULL(value));
+		MYLOG(0, "  socket: value = '%s'\n", NULL_IF_NULL(value));
 	}
 
 	if (get_bookmark)
@@ -1084,7 +1086,7 @@ inolog("currT=%d base=%d rowset=%d\n", stmt->currTuple, QR_get_rowstart_in_cache
 	field_type = QR_get_field_type(res, icol);
 	atttypmod = QR_get_atttypmod(res, icol);
 
-	mylog("**** %s: icol = %d, target_type = %d, field_type = %d, value = '%s'\n", func, icol, target_type, field_type, NULL_IF_NULL(value));
+	MYLOG(0, "**** icol = %d, target_type = %d, field_type = %d, value = '%s'\n", icol, target_type, field_type, NULL_IF_NULL(value));
 
 	SC_set_current_col(stmt, icol);
 
@@ -1134,7 +1136,7 @@ inolog("currT=%d base=%d rowset=%d\n", stmt->currTuple, QR_get_rowstart_in_cache
 
 cleanup:
 #undef	return
-inolog("%s returning %d\n", __FUNCTION__, result);
+MYLOG(DETAIL_LOG_LEVEL, "leaving %d\n", result);
 	return result;
 }
 
@@ -1153,7 +1155,7 @@ PGAPI_Fetch(HSTMT hstmt)
 	BindInfoClass	*bookmark;
 	RETCODE		retval = SQL_SUCCESS;
 
-	mylog("%s: stmt = %p, stmt->result= %p\n", func, stmt, stmt ? SC_get_Curres(stmt) : NULL);
+	MYLOG(0, "entering stmt = %p, stmt->result= %p\n", stmt, stmt ? SC_get_Curres(stmt) : NULL);
 
 	if (!stmt)
 	{
@@ -1226,9 +1228,10 @@ getNthValid(const QResultClass *res, SQLLEN sta, UWORD orientation,
 	if (!QR_once_reached_eof(res))
 		num_tuples = INT_MAX;
 	/* Note that the parameter nth is 1-based */
-inolog("get %dth Valid data from %d to %s [dlt=%d]", nth, sta, orientation == SQL_FETCH_PRIOR ? "backward" : "forward", res->dl_count);
+MYLOG(DETAIL_LOG_LEVEL, "get " FORMAT_ULEN "th Valid data from " FORMAT_LEN " to %s [dlt=%d]", nth, sta, orientation == SQL_FETCH_PRIOR ? "backward" : "forward", res->dl_count);
 	if (0 == res->dl_count)
 	{
+		MYPRINTF(DETAIL_LOG_LEVEL, "\n");
 		if (SQL_FETCH_PRIOR == orientation)
 		{
 			if (sta + 1 >= (SQLLEN) nth)
@@ -1261,9 +1264,10 @@ inolog("get %dth Valid data from %d to %s [dlt=%d]", nth, sta, orientation == SQ
 		{
 			*nearest = sta + 1 - nth;
 			delsta = (-1);
+			MYPRINTF(DETAIL_LOG_LEVEL, "deleted ");
 			for (i = res->dl_count - 1; i >=0 && *nearest <= deleted[i]; i--)
 			{
-inolog("deleted[%d]=%d\n", i, deleted[i]);
+				MYPRINTF(DETAIL_LOG_LEVEL, "[" FORMAT_LEN "]=" FORMAT_LEN " ", i, deleted[i]);
 				if (sta >= deleted[i])
 				{
 					(*nearest)--;
@@ -1271,7 +1275,7 @@ inolog("deleted[%d]=%d\n", i, deleted[i]);
 						delsta = i;
 				}
 			}
-inolog("nearest=%d\n", *nearest);
+			MYPRINTF(DETAIL_LOG_LEVEL, "nearest=" FORMAT_LEN "\n", *nearest);
 			if (*nearest < 0)
 			{
 				*nearest = -1;
@@ -1282,6 +1286,7 @@ inolog("nearest=%d\n", *nearest);
 		}
 		else
 		{
+			MYPRINTF(DETAIL_LOG_LEVEL, "\n");
 			*nearest = sta - 1 + nth;
 			delsta = res->dl_count;
 			if (!QR_once_reached_eof(res))
@@ -1312,7 +1317,7 @@ inolog("nearest=%d\n", *nearest);
 			if (0 == (keyset->status & (CURS_SELF_DELETING | CURS_SELF_DELETED | CURS_OTHER_DELETED)))
 			{
 				*nearest = i;
-inolog(" nearest=%d\n", *nearest);
+MYPRINTF(DETAIL_LOG_LEVEL, " nearest=" FORMAT_LEN "\n", *nearest);
 				if (++count == nth)
 					return count;
 			}
@@ -1327,14 +1332,14 @@ inolog(" nearest=%d\n", *nearest);
 			if (0 == (keyset->status & (CURS_SELF_DELETING | CURS_SELF_DELETED | CURS_OTHER_DELETED)))
 			{
 				*nearest = i;
-inolog(" nearest=%d\n", *nearest);
+MYPRINTF(DETAIL_LOG_LEVEL, " nearest=" FORMAT_LEN "\n", *nearest);
 				if (++count == nth)
 					return count;
 			}
 		}
 		*nearest = num_tuples;
 	}
-inolog(" nearest not found\n");
+MYPRINTF(DETAIL_LOG_LEVEL, " nearest not found\n");
 	return -(SQLLEN)count;
 }
 
@@ -1353,7 +1358,7 @@ move_cursor_position_if_needed(StatementClass *self, QResultClass *res)
 		res->move_offset = 0;
 		return;
 	}
-inolog("BASE=%d numb=%d curr=%d cursT=%d\n", QR_get_rowstart_in_cache(res), res->num_cached_rows, self->currTuple, res->cursTuple);
+MYLOG(DETAIL_LOG_LEVEL, "BASE=" FORMAT_LEN " numb=" FORMAT_LEN " curr=" FORMAT_LEN " cursT=" FORMAT_LEN "\n", QR_get_rowstart_in_cache(res), res->num_cached_rows, self->currTuple, res->cursTuple);
 
 	/* normal case */
 	res->move_offset = 0;
@@ -1383,7 +1388,7 @@ inolog("BASE=%d numb=%d curr=%d cursT=%d\n", QR_get_rowstart_in_cache(res), res-
  */
 #define	EXTFETCH_RETURN_BOF(stmt, res) \
 { \
-inolog("RETURN_BOF\n"); \
+MYLOG(DETAIL_LOG_LEVEL, "RETURN_BOF\n"); \
 	SC_set_rowset_start(stmt, -1, TRUE); \
 	stmt->currTuple = -1; \
 	/* move_cursor_position_if_needed(stmt, res); */ \
@@ -1391,7 +1396,7 @@ inolog("RETURN_BOF\n"); \
 }
 #define	EXTFETCH_RETURN_EOF(stmt, res) \
 { \
-inolog("RETURN_EOF\n"); \
+MYLOG(DETAIL_LOG_LEVEL, "RETURN_EOF\n"); \
 	SC_set_rowset_start(stmt, num_tuples, TRUE); \
 	stmt->currTuple = -1; \
 	/* move_cursor_position_if_needed(stmt, res); */ \
@@ -1423,7 +1428,7 @@ PGAPI_ExtendedFetch(HSTMT hstmt,
 	BOOL		currp_is_valid, reached_eof, useCursor;
 	SQLLEN		reqsize = rowsetSize;
 
-	mylog("%s: stmt=%p rowsetSize=%d\n", func, stmt, rowsetSize);
+	MYLOG(0, "entering stmt=%p rowsetSize=" FORMAT_LEN "\n", stmt, rowsetSize);
 
 	if (!stmt)
 	{
@@ -1496,7 +1501,7 @@ PGAPI_ExtendedFetch(HSTMT hstmt,
 	if (useCursor && !reached_eof)
 		num_tuples = INT_MAX;
 
-inolog("num_tuples=%d\n", num_tuples);
+MYLOG(DETAIL_LOG_LEVEL, "num_tuples=" FORMAT_LEN "\n", num_tuples);
 	/* Save and discard the saved rowset size */
 	save_rowset_size = stmt->save_rowset_size;
 	stmt->save_rowset_size = -1;
@@ -1541,11 +1546,11 @@ inolog("num_tuples=%d\n", num_tuples);
 			}
 			else
 				SC_inc_rowset_start(stmt, progress_size);
-			mylog("SQL_FETCH_NEXT: num_tuples=%d, currtuple=%d, rowst=%d\n", num_tuples, stmt->currTuple, rowset_start);
+			MYLOG(0, "SQL_FETCH_NEXT: num_tuples=" FORMAT_LEN ", currtuple=" FORMAT_LEN ", rowst=" FORMAT_LEN "\n", num_tuples, stmt->currTuple, rowset_start);
 			break;
 
 		case SQL_FETCH_PRIOR:
-			mylog("SQL_FETCH_PRIOR: num_tuples=%d, currtuple=%d\n", num_tuples, stmt->currTuple);
+			MYLOG(0, "SQL_FETCH_PRIOR: num_tuples=" FORMAT_LEN ", currtuple=" FORMAT_LEN "\n", num_tuples, stmt->currTuple);
 
 			/*
 			 * From the odbc spec... If positioned after the end of the
@@ -1594,13 +1599,13 @@ inolog("num_tuples=%d\n", num_tuples);
 			break;
 
 		case SQL_FETCH_FIRST:
-			mylog("SQL_FETCH_FIRST: num_tuples=%d, currtuple=%d\n", num_tuples, stmt->currTuple);
+			MYLOG(0, "SQL_FETCH_FIRST: num_tuples=" FORMAT_LEN ", currtuple=" FORMAT_LEN "\n", num_tuples, stmt->currTuple);
 
 			SC_set_rowset_start(stmt, 0, TRUE);
 			break;
 
 		case SQL_FETCH_LAST:
-			mylog("SQL_FETCH_LAST: num_tuples=%d, currtuple=%d\n", num_tuples, stmt->currTuple);
+			MYLOG(0, "SQL_FETCH_LAST: num_tuples=" FORMAT_LEN ", currtuple=" FORMAT_LEN "\n", num_tuples, stmt->currTuple);
 
 			if (!reached_eof)
 			{
@@ -1629,7 +1634,7 @@ inolog("num_tuples=%d\n", num_tuples);
 			break;
 
 		case SQL_FETCH_ABSOLUTE:
-			mylog("SQL_FETCH_ABSOLUTE: num_tuples=%d, currtuple=%d, irow=%d\n", num_tuples, stmt->currTuple, irow);
+			MYLOG(0, "SQL_FETCH_ABSOLUTE: num_tuples=" FORMAT_LEN ", currtuple=" FORMAT_LEN ", irow=" FORMAT_LEN "\n", num_tuples, stmt->currTuple, irow);
 
 			/* Position before result set, but dont fetch anything */
 			if (irow == 0)
@@ -1828,7 +1833,7 @@ inolog("num_tuples=%d\n", num_tuples);
 	}
 	/* Physical Row advancement occurs for each row fetched below */
 
-	mylog("PGAPI_ExtendedFetch: new currTuple = %d\n", stmt->currTuple);
+	MYLOG(0, "new currTuple = " FORMAT_LEN "\n", stmt->currTuple);
 
 	truncated = error = FALSE;
 
@@ -1840,11 +1845,11 @@ inolog("num_tuples=%d\n", num_tuples);
 	if (SQL_NO_DATA_FOUND != result && res->keyset)
 	{
 		currp = GIdx2KResIdx(SC_get_rowset_start(stmt), stmt, res);
-inolog("currp=%d\n", currp);
+MYLOG(DETAIL_LOG_LEVEL, "currp=" FORMAT_LEN "\n", currp);
 		if (currp < 0)
 		{
 			result = SQL_ERROR;
-			mylog("rowset_start=%d but currp=%d\n", SC_get_rowset_start(stmt), currp);
+			MYLOG(0, "rowset_start=" FORMAT_LEN " but currp=" FORMAT_LEN "\n", SC_get_rowset_start(stmt), currp);
 			SC_set_error(stmt, STMT_INTERNAL_ERROR, "rowset_start not in the keyset", func);
 			goto cleanup;
 		}
@@ -1862,14 +1867,14 @@ inolog("currp=%d\n", currp);
 			}
 			else
 			{
-				mylog("Umm current row is out of keyset\n");
+				MYLOG(0, "Umm current row is out of keyset\n");
 				break;
 			}
 		}
-inolog("ExtFetch result=%d\n", result);
+MYLOG(DETAIL_LOG_LEVEL, "ExtFetch result=%d\n", result);
 		if (currp_is_valid && SQL_SUCCESS_WITH_INFO == result && 0 == stmt->last_fetch_count)
 		{
-inolog("just skipping deleted row %d\n", currp);
+MYLOG(DETAIL_LOG_LEVEL, "just skipping deleted row " FORMAT_LEN "\n", currp);
 			if (rowsetSize - i + fc_io > reqsize)
 				QR_set_reqsize(res, (Int4) (rowsetSize - i + fc_io));
 			result = SC_fetch(stmt);
@@ -1938,7 +1943,7 @@ inolog("just skipping deleted row %d\n", currp);
 	/* Set the number of rows retrieved */
 	if (pcrow)
 		*pcrow = i;
-inolog("pcrow=%d\n", i);
+MYLOG(DETAIL_LOG_LEVEL, "pcrow=" FORMAT_LEN "\n", i);
 
 	if (i == 0)
 		/* Only DeclareFetch should wind up here */
@@ -1966,12 +1971,11 @@ cleanup:
 RETCODE		SQL_API
 PGAPI_MoreResults(HSTMT hstmt)
 {
-	CSTR func = "PGAPI_MoreResults";
 	StatementClass	*stmt = (StatementClass *) hstmt;
 	QResultClass	*res;
 	RETCODE		ret = SQL_SUCCESS;
 
-	mylog("%s: entering...\n", func);
+	MYLOG(0, "entering...\n");
 	res = SC_get_Curres(stmt);
 	if (res)
 	{
@@ -2004,7 +2008,7 @@ PGAPI_MoreResults(HSTMT hstmt)
 		PGAPI_FreeStmt(hstmt, SQL_CLOSE);
 		ret = SQL_NO_DATA_FOUND;
 	}
-	mylog("%s: returning %d\n", func, ret);
+	MYLOG(0, "leaving %d\n", ret);
 	return ret;
 }
 
@@ -2052,7 +2056,7 @@ static void AddRollback(StatementClass *stmt, QResultClass *res, SQLLEN index, c
 
 	if (!CC_is_in_trans(conn))
 		return;
-inolog("AddRollback %d(%u,%u) %s\n", index, keyset->blocknum, keyset->offset, dmlcode == SQL_ADD ? "ADD" : (dmlcode == SQL_UPDATE ? "UPDATE" : (dmlcode == SQL_DELETE ? "DELETE" : "REFRESH")));
+MYLOG(DETAIL_LOG_LEVEL, "entering " FORMAT_LEN "(%u,%u) %s\n", index, keyset->blocknum, keyset->offset, dmlcode == SQL_ADD ? "ADD" : (dmlcode == SQL_UPDATE ? "UPDATE" : (dmlcode == SQL_DELETE ? "DELETE" : "REFRESH")));
 	if (!res->rollback)
 	{
 		res->rb_count = 0;
@@ -2102,7 +2106,7 @@ SQLLEN ClearCachedRows(TupleField *tuple, int num_fields, SQLLEN num_rows)
 	{
 		if (tuple->value)
 		{
-inolog("freeing tuple[%d][%d].value=%p\n", i / num_fields, i % num_fields, tuple->value);
+MYLOG(DETAIL_LOG_LEVEL, "freeing tuple[" FORMAT_LEN "][" FORMAT_LEN "].value=%p\n", i / num_fields, i % num_fields, tuple->value);
 			free(tuple->value);
 			tuple->value = NULL;
 		}
@@ -2114,7 +2118,7 @@ SQLLEN ReplaceCachedRows(TupleField *otuple, const TupleField *ituple, int num_f
 {
 	SQLLEN	i;
 
-inolog("ReplaceCachedRows %p num_fields=%d num_rows=%d\n", otuple, num_fields, num_rows);
+MYLOG(DETAIL_LOG_LEVEL, "entering %p num_fields=%d num_rows=" FORMAT_LEN "\n", otuple, num_fields, num_rows);
 	for (i = 0; i < num_fields * num_rows; i++, ituple++, otuple++)
 	{
 		if (otuple->value)
@@ -2125,7 +2129,7 @@ inolog("ReplaceCachedRows %p num_fields=%d num_rows=%d\n", otuple, num_fields, n
 		if (ituple->value)
 {
 			otuple->value = strdup(ituple->value);
-inolog("[%d,%d] %s copied\n", i / num_fields, i % num_fields, otuple->value);
+MYLOG(DETAIL_LOG_LEVEL, "[" FORMAT_LEN "," FORMAT_LEN "] %s copied\n", i / num_fields, i % num_fields, (const char *) otuple->value);
 }
 		if (otuple->value)
 			otuple->len = ituple->len;
@@ -2140,7 +2144,7 @@ int MoveCachedRows(TupleField *otuple, TupleField *ituple, Int2 num_fields, SQLL
 {
 	int	i;
 
-inolog("MoveCachedRows %p num_fields=%d num_rows=%d\n", otuple, num_fields, num_rows);
+MYLOG(DETAIL_LOG_LEVEL, "entering %p num_fields=%d num_rows=" FORMAT_LEN "\n", otuple, num_fields, num_rows);
 	for (i = 0; i < num_fields * num_rows; i++, ituple++, otuple++)
 	{
 		if (otuple->value)
@@ -2152,7 +2156,7 @@ inolog("MoveCachedRows %p num_fields=%d num_rows=%d\n", otuple, num_fields, num_
 		{
 			otuple->value = ituple->value;
 			ituple->value = NULL;
-inolog("[%d,%d] %s copied\n", i / num_fields, i % num_fields, otuple->value);
+MYLOG(DETAIL_LOG_LEVEL, "[%d,%d] %s copied\n", i / num_fields, i % num_fields, (const char *) otuple->value);
 		}
 		otuple->len = ituple->len;
 		ituple->len = -1;
@@ -2195,26 +2199,35 @@ ti_quote(StatementClass *stmt, OID tableoid, char *buf, int buf_size)
 
 static BOOL	tupleExists(StatementClass *stmt, const KeySet *keyset)
 {
-	char	selstr[256];
+	PQExpBufferData	selstr = {0};
 	const TABLE_INFO	*ti = stmt->ti[0];
 	QResultClass	*res;
 	RETCODE		ret = FALSE;
 	const char *bestqual = GET_NAME(ti->bestqual);
 	char table_fqn[256];
 
-	SPRINTF_FIXED(selstr,
+	initPQExpBuffer(&selstr);
+	printfPQExpBuffer(&selstr,
 			 "select 1 from %s where ctid = '(%u,%u)'",
 			 ti_quote(stmt, keyset->oid, table_fqn, sizeof(table_fqn)),
 			 keyset->blocknum, keyset->offset);
 	if (NULL != bestqual && 0 != keyset->oid && !TI_has_subclass(ti))
 	{
-		SPRINTFCAT_FIXED(selstr, " and ");
-		SPRINTFCAT_FIXED(selstr, bestqual, keyset->oid);
+		appendPQExpBuffer(&selstr, " and ");
+		appendPQExpBuffer(&selstr, bestqual, keyset->oid);
 	}
-	res = CC_send_query(SC_get_conn(stmt), selstr, NULL, READ_ONLY_QUERY, NULL);
+	if (PQExpBufferDataBroken(selstr))
+	{
+		SC_set_error(stmt, STMT_NO_MEMORY_ERROR, "Out of memory in tupleExists()", __FUNCTION__);
+		goto cleanup;
+	}
+	res = CC_send_query(SC_get_conn(stmt), selstr.data, NULL, READ_ONLY_QUERY, NULL);
 	if (QR_command_maybe_successful(res) && 1 == res->num_cached_rows)
 		ret = TRUE;
 	QR_Destructor(res);
+cleanup:
+	if (!PQExpBufferDataBroken(selstr))
+		termPQExpBuffer(&selstr);
 	return ret;
 }
 
@@ -2249,7 +2262,7 @@ static void AddAdded(StatementClass *stmt, QResultClass *res, SQLLEN index, cons
 
 	if (!res)	return;
 	num_fields = res->num_fields;
-inolog("AddAdded index=%d, tuple=%p, num_fields=%d\n", index, tuple_added, num_fields);
+MYLOG(DETAIL_LOG_LEVEL, "entering index=" FORMAT_LEN ", tuple=%p, num_fields=%d\n", index, tuple_added, num_fields);
 	ad_count = res->ad_count;
 	res->ad_count++;
 	if (QR_get_cursor(res))
@@ -2295,7 +2308,7 @@ static	void RemoveAdded(QResultClass *res, SQLLEN index)
 	KeySet	*added_keyset;
 	TupleField	*added_tuples;
 
-	mylog("RemoveAdded index=%d\n", index);
+	MYLOG(0, "entering index=" FORMAT_LEN "\n", index);
 	if (index < 0)
 		rmidx = -index - 1;
 	else
@@ -2314,7 +2327,7 @@ static	void RemoveAdded(QResultClass *res, SQLLEN index)
 	RemoveDeleted(res, index);
 	RemoveUpdated(res, index);
 	res->ad_count--;
-	mylog("RemoveAdded removed=1 count=%d\n", res->ad_count);
+	MYLOG(0, "removed=1 count=%d\n", res->ad_count);
 }
 
 static void
@@ -2324,7 +2337,7 @@ CommitAdded(QResultClass *res)
 	int	i;
 	UWORD	status;
 
-	mylog("CommitAdded res=%p\n", res);
+	MYLOG(0, "entering res=%p\n", res);
 	if (!res || !res->added_keyset)	return;
 	added_keyset = res->added_keyset;
 	for (i = res->ad_count - 1; i >= 0; i--)
@@ -2347,7 +2360,7 @@ CommitAdded(QResultClass *res)
 		}
 		if (status != added_keyset[i].status)
 		{
-inolog("!!Commit Added=%d(%d)\n", QR_get_num_total_read(res) + i, i);
+MYLOG(DETAIL_LOG_LEVEL, "!!Commit Added=" FORMAT_ULEN "(%d)\n", QR_get_num_total_read(res) + i, i);
 			added_keyset[i].status = status;
 		}
 	}
@@ -2363,7 +2376,7 @@ AddDeleted(QResultClass *res, SQLULEN index, const KeySet *keyset)
 	UWORD	status;
 	Int2	num_fields = res->num_fields;
 
-inolog("AddDeleted %d\n", index);
+MYLOG(DETAIL_LOG_LEVEL, "entering " FORMAT_ULEN "\n", index);
 	dl_count = res->dl_count;
 	res->dl_count++;
 	if (!QR_get_cursor(res))
@@ -2428,7 +2441,7 @@ RemoveDeleted(QResultClass *res, SQLLEN index)
 	SQLLEN	*deleted, num_read = QR_get_num_total_read(res);
 	KeySet	*deleted_keyset;
 
-	mylog("RemoveDeleted index=%d\n", index);
+	MYLOG(0, "entering index=" FORMAT_LEN "\n", index);
 	if (index < 0)
 	{
 		midx = index;
@@ -2459,7 +2472,7 @@ RemoveDeleted(QResultClass *res, SQLLEN index)
 			rm_count++;
 		}
 	}
-	mylog("RemoveDeleted removed count=%d,%d\n", rm_count, res->dl_count);
+	MYLOG(0, "removed count=%d,%d\n", rm_count, res->dl_count);
 }
 
 static void
@@ -2493,7 +2506,7 @@ CommitDeleted(QResultClass *res)
 		}
 		if (status != deleted_keyset->status)
 		{
-inolog("!!Commit Deleted=%d(%d)\n", *deleted, i);
+MYLOG(DETAIL_LOG_LEVEL, "Deleted=" FORMAT_LEN "(%d)\n", *deleted, i);
 			deleted_keyset->status = status;
 		}
 	}
@@ -2539,7 +2552,7 @@ AddUpdated(StatementClass *stmt, SQLLEN index, const KeySet *keyset, const Tuple
 	int	i;
 	UWORD	status;
 
-inolog("AddUpdated index=%d\n", index);
+MYLOG(DETAIL_LOG_LEVEL, "entering index=" FORMAT_LEN "\n", index);
 	if (!stmt)	return;
 	if (res = SC_get_Curres(stmt), !res)	return;
 	if (!keyset)	return;
@@ -2626,13 +2639,13 @@ inolog("AddUpdated index=%d\n", index);
 		ReplaceCachedRows(tuple, tuple_updated, num_fields, 1);
 	if (is_in_trans)
 		SC_get_conn(stmt)->result_uncommitted = 1;
-	mylog("up_count=%d\n", res->up_count);
+	MYLOG(0, "up_count=%d\n", res->up_count);
 }
 
 static void
 RemoveUpdated(QResultClass *res, SQLLEN index)
 {
-	mylog("RemoveUpdated index=%d\n", index);
+	MYLOG(0, "entering index=" FORMAT_LEN "\n", index);
 	RemoveUpdatedAfterTheKey(res, index, NULL);
 }
 
@@ -2645,7 +2658,7 @@ RemoveUpdatedAfterTheKey(QResultClass *res, SQLLEN index, const KeySet *keyset)
 	SQLLEN	pidx, midx, mv_count;
 	int	i, num_fields = res->num_fields, rm_count = 0;
 
-	mylog("RemoveUpdatedAfterTheKey %d,(%u,%u)\n", index, keyset ? keyset->blocknum : 0, keyset ? keyset->offset : 0);
+	MYLOG(0, "entering " FORMAT_LEN ",(%u,%u)\n", index, keyset ? keyset->blocknum : 0, keyset ? keyset->offset : 0);
 	if (index < 0)
 	{
 		midx = index;
@@ -2688,7 +2701,7 @@ RemoveUpdatedAfterTheKey(QResultClass *res, SQLLEN index, const KeySet *keyset)
 			rm_count++;
 		}
 	}
-	mylog("RemoveUpdatedAfter removed count=%d,%d\n", rm_count, res->up_count);
+	MYLOG(0, "removed count=%d,%d\n", rm_count, res->up_count);
 }
 
 static void
@@ -2698,7 +2711,7 @@ CommitUpdated(QResultClass *res)
 	int	i;
 	UWORD	status;
 
-	mylog("CommitUpdated res=%p\n", res);
+	MYLOG(0, "entering res=%p\n", res);
 	if (!res)	return;
 	if (!QR_get_cursor(res))
 		return;
@@ -2726,7 +2739,7 @@ CommitUpdated(QResultClass *res)
 		}
 		if (status != updated_keyset[i].status)
 		{
-inolog("!!Commit Updated=%d(%d)\n", res->updated[i], i);
+MYLOG(DETAIL_LOG_LEVEL, "!!Commit Updated=" FORMAT_LEN "(%d)\n", res->updated[i], i);
 			updated_keyset[i].status = status;
 		}
 	}
@@ -2743,7 +2756,7 @@ DiscardRollback(StatementClass *stmt, QResultClass *res)
 	KeySet	*keyset;
 	BOOL	kres_is_valid;
 
-inolog("DiscardRollback");
+MYLOG(DETAIL_LOG_LEVEL, "entering\n");
 	if (QR_get_cursor(res))
 	{
 		CommitAdded(res);
@@ -2806,6 +2819,7 @@ UndoRollback(StatementClass *stmt, QResultClass *res, BOOL partial)
 		int		doubtp;
 		int	j;
 
+		MYLOG(DETAIL_LOG_LEVEL, " ");
 		for (i = 0, doubtp = 0; i < res->rb_count; i++)
 		{
 			keys.status = 0;
@@ -2813,7 +2827,7 @@ UndoRollback(StatementClass *stmt, QResultClass *res, BOOL partial)
 			keys.offset = rollback[i].offset;
 			keys.oid = rollback[i].oid;
 			texist = tupleExists(stmt, &keys);
-inolog("texist[%d]=%d", i, texist);
+MYPRINTF(DETAIL_LOG_LEVEL, "texist[%d]=%d", i, texist);
 			if (SQL_ADD == rollback[i].option)
 			{
 				if (texist)
@@ -2831,10 +2845,10 @@ inolog("texist[%d]=%d", i, texist);
 				if (doubtp == i)
 					doubtp = i + 1;
 			}
-inolog(" doubtp=%d\n", doubtp);
+MYPRINTF(DETAIL_LOG_LEVEL, " (doubtp=%d)", doubtp);
 		}
 		rollbp = i;
-inolog(" doubtp=%d,rollbp=%d\n", doubtp, rollbp);
+MYPRINTF(DETAIL_LOG_LEVEL, " doubtp=%d,rollbp=%d\n", doubtp, rollbp);
 		do
 		{
 			rollbps = rollbp;
@@ -2843,7 +2857,7 @@ inolog(" doubtp=%d,rollbp=%d\n", doubtp, rollbp);
 				index = rollback[i].index;
 				if (SQL_ADD == rollback[i].option)
 				{
-inolog("index[%d]=%d\n", i, index);
+MYLOG(DETAIL_LOG_LEVEL, "index[%d]=" FORMAT_LEN "\n", i, index);
 					if (index < 0)
 					{
 						midx = index;
@@ -2854,7 +2868,7 @@ inolog("index[%d]=%d\n", i, index);
 						pidx = index;
 						midx = res->num_total_read - index - 1;
 					}
-inolog("pidx=%d,midx=%d\n", pidx, midx);
+MYLOG(DETAIL_LOG_LEVEL, "pidx=" FORMAT_LEN ",midx=" FORMAT_LEN "\n", pidx, midx);
 					for (j = rollbp - 1; j > i; j--)
 					{
 						if (rollback[j].index == midx ||
@@ -2862,12 +2876,12 @@ inolog("pidx=%d,midx=%d\n", pidx, midx);
 						{
 							if (SQL_DELETE == rollback[j].option)
 							{
-inolog("delete[%d].index=%d\n", j, rollback[j].index);
+MYLOG(DETAIL_LOG_LEVEL, "delete[%d].index=" FORMAT_LEN "\n", j, rollback[j].index);
 								break;
 							}
 							/*else if (SQL_UPDATE == rollback[j].option)
 							{
-inolog("update[%d].index=%d\n", j, rollback[j].index);
+MYLOG(DETAIL_LOG_LEVEL, "update[%d].index=%d\n", j, rollback[j].index);
 								if (IndexExists(stmt, res, rollback + j))
 									break;
 							}*/
@@ -2882,11 +2896,11 @@ inolog("update[%d].index=%d\n", j, rollback[j].index);
 			}
 		} while (rollbp < rollbps);
 	}
-inolog("rollbp=%d\n", rollbp);
+MYLOG(DETAIL_LOG_LEVEL, "rollbp=%d\n", rollbp);
 
 	for (i = res->rb_count - 1; i >= rollbp; i--)
 	{
-inolog("UndoRollback %d(%d)\n", i, rollback[i].option);
+MYLOG(DETAIL_LOG_LEVEL, "do %d(%d)\n", i, rollback[i].option);
 		index = rollback[i].index;
 		if (curs)
 		{
@@ -2912,7 +2926,7 @@ inolog("UndoRollback %d(%d)\n", i, rollback[i].option);
 				status = wkey->status;
 			}
 		}
-inolog(" index=%d status=%hx", index, status);
+MYLOG(DETAIL_LOG_LEVEL, " index=" FORMAT_LEN " status=%hx", index, status);
 		if (kres_is_valid)
 		{
 			QResultClass	*qres;
@@ -2935,11 +2949,11 @@ inolog(" index=%d status=%hx", index, status);
 				continue;
 			else
 			{
-inolog(" (%u, %u)", wkey->blocknum,  wkey->offset);
+MYPRINTF(DETAIL_LOG_LEVEL, " (%u, %u)", wkey->blocknum,  wkey->offset);
 				wkey->blocknum = rollback[i].blocknum;
 				wkey->offset = rollback[i].offset;
 				wkey->oid = rollback[i].oid;
-inolog("->(%u, %u)\n", wkey->blocknum, wkey->offset);
+MYPRINTF(DETAIL_LOG_LEVEL, "->(%u, %u)", wkey->blocknum, wkey->offset);
 				wkey->status &= ~KEYSET_INFO_PUBLIC;
 				if (SQL_DELETE == rollback[i].option)
 					wkey->status &= ~CURS_SELF_DELETING;
@@ -2965,6 +2979,7 @@ inolog("->(%u, %u)\n", wkey->blocknum, wkey->offset);
 			}
 		}
 	}
+	MYPRINTF(DETAIL_LOG_LEVEL, "\n");
 	res->rb_count = rollbp;
 	if (0 == rollbp)
 	{
@@ -3002,38 +3017,17 @@ static QResultClass *
 positioned_load(StatementClass *stmt, UInt4 flag, const UInt4 *oidint, const char *tidval)
 {
 	CSTR	func = "positioned_load";
-	CSTR	andqual = " and ";
 	QResultClass *qres = NULL;
-	char	*selstr, oideqstr[256];
+	PQExpBufferData	selstr = {0};
 	BOOL	latest = ((flag & LATEST_TUPLE_LOAD) != 0);
-	size_t	len;
 	TABLE_INFO	*ti = stmt->ti[0];
 	const char *bestqual = GET_NAME(ti->bestqual);
 	const ssize_t	from_pos = stmt->load_from_pos;
 	const char *load_stmt = stmt->load_statement;
 
-inolog("%s bestitem=%s bestqual=%s\n", func, SAFE_NAME(ti->bestitem), SAFE_NAME(ti->bestqual));
-	if (!bestqual || !oidint)
-		*oideqstr = '\0';
-	else
-	{
-		STRCPY_FIXED(oideqstr, andqual);
-		SPRINTFCAT_FIXED(oideqstr, bestqual, *oidint);
-	}
-	len = strlen(load_stmt);
-	len += strlen(oideqstr);
-	if (tidval)
-		len += 100;
-	else if ((flag & USE_INSERTED_TID) != 0)
-		len += 50;
-	else
-		len += 20;
-	selstr = malloc(len);
-	if (!selstr)
-	{
-		SC_set_error(stmt,STMT_NO_MEMORY_ERROR, "Could not allocate memory for query", func);
-		goto cleanup;
-	}
+MYLOG(DETAIL_LOG_LEVEL, "entering bestitem=%s bestqual=%s\n", SAFE_NAME(ti->bestitem), SAFE_NAME(ti->bestqual));
+	initPQExpBuffer(&selstr);
+#define	return	DONT_CALL_RETURN_FROM_HERE???
 	if (TI_has_subclass(ti))
 	{
 		OID	tableoid = *oidint;
@@ -3045,7 +3039,7 @@ inolog("%s bestitem=%s bestqual=%s\n", func, SAFE_NAME(ti->bestitem), SAFE_NAME(
 		{
 			if (latest)
 			{
-				snprintf(selstr, len,
+				printfPQExpBuffer(&selstr,
 					 "%.*sfrom %s where ctid = currtid2('%s', '%s')",
 					 (int) from_pos, load_stmt,
 					 quoted_table,
@@ -3053,10 +3047,10 @@ inolog("%s bestitem=%s bestqual=%s\n", func, SAFE_NAME(ti->bestitem), SAFE_NAME(
 					 tidval);
 			}
 			else
-				snprintf(selstr, len, "%.*sfrom %s where ctid = '%s'", (int) from_pos, load_stmt, quoted_table, tidval);
+				printfPQExpBuffer(&selstr, "%.*sfrom %s where ctid = '%s'", (int) from_pos, load_stmt, quoted_table, tidval);
 		}
 		else if ((flag & USE_INSERTED_TID) != 0)
-			snprintf(selstr, len, "%.*sfrom %s where ctid = currtid(0, '(0,0)')", (int) from_pos, load_stmt, quoted_table);
+			printfPQExpBuffer(&selstr, "%.*sfrom %s where ctid = currtid(0, '(0,0)')", (int) from_pos, load_stmt, quoted_table);
 		/*
 		else if (bestitem && oidint)
 		{
@@ -3070,39 +3064,55 @@ inolog("%s bestitem=%s bestqual=%s\n", func, SAFE_NAME(ti->bestitem), SAFE_NAME(
 	}
 	else
 	{
+		CSTR	andqual = " and ";
+		BOOL	andExist = TRUE;
+
 		if (tidval)
 		{
 			if (latest)
 			{
 				char table_fqn[256];
 
-				snprintf(selstr, len,
-					 "%s where ctid = currtid2('%s', '%s') %s",
+				printfPQExpBuffer(&selstr,
+					 "%s where ctid = currtid2('%s', '%s')",
 					 load_stmt,
 					 ti_quote(stmt, 0, table_fqn, sizeof(table_fqn)),
-					 tidval, oideqstr);
+					 tidval);
 			}
 			else
-				snprintf(selstr, len, "%s where ctid = '%s' %s", load_stmt, tidval, oideqstr);
+				printfPQExpBuffer(&selstr, "%s where ctid = '%s'", load_stmt, tidval);
 		}
 		else if ((flag & USE_INSERTED_TID) != 0)
-			snprintf(selstr, len, "%s where ctid = currtid(0, '(0,0)') %s", load_stmt, oideqstr);
-		else if (bestqual && oidint)
+			printfPQExpBuffer(&selstr, "%s where ctid = currtid(0, '(0,0)')", load_stmt);
+		else if (bestqual)
 		{
-			snprintf(selstr, len, "%s where ", load_stmt);
-			snprintfcat(selstr, len, bestqual, *oidint);
+			andExist = FALSE;
+			printfPQExpBuffer(&selstr, "%s where ", load_stmt);
 		}
 		else
 		{
 			SC_set_error(stmt,STMT_INTERNAL_ERROR, "can't find the add and updating row because of the lack of oid", func);
 			goto cleanup;
 		}
+		if (bestqual && oidint)
+		{
+			if (andExist)
+				appendPQExpBufferStr(&selstr, andqual);
+			appendPQExpBuffer(&selstr, bestqual, *oidint);
+		}
 	}
 
-	mylog("selstr=%s\n", selstr);
-	qres = CC_send_query(SC_get_conn(stmt), selstr, NULL, READ_ONLY_QUERY, stmt);
+	if (PQExpBufferDataBroken(selstr))
+	{
+		SC_set_error(stmt, STMT_NO_MEMORY_ERROR, "Could not allocate memory positioned_load()", func);
+		goto cleanup;
+	}
+	MYLOG(0, "selstr=%s\n", selstr.data);
+	qres = CC_send_query(SC_get_conn(stmt), selstr.data, NULL, READ_ONLY_QUERY, stmt);
 cleanup:
-	free(selstr);
+#undef	return
+	if (!PQExpBufferDataBroken(selstr))
+		termPQExpBuffer(&selstr);
 	return qres;
 }
 
@@ -3152,7 +3162,7 @@ SC_pos_reload_with_key(StatementClass *stmt, SQLULEN global_ridx, UInt2 *count, 
 	BOOL		use_ctid = TRUE;
 	BOOL		idx_exist = TRUE;
 
-	mylog("positioned load fi=%p ti=%p\n", irdflds->fi, stmt->ti);
+	MYLOG(0, "entering fi=%p ti=%p\n", irdflds->fi, stmt->ti);
 	rcnt = 0;
 	if (count)
 		*count = 0;
@@ -3177,7 +3187,7 @@ SC_pos_reload_with_key(StatementClass *stmt, SQLULEN global_ridx, UInt2 *count, 
 		if (NULL == keyset || keyset->offset == 0)
 		{
 			use_ctid = FALSE;
-			mylog("The tuple is currently being added and can't use ctid\n");
+			MYLOG(0, "The tuple is currently being added and can't use ctid\n");
 		}
 	}
 
@@ -3293,10 +3303,10 @@ static SQLLEN LoadFromKeyset(StatementClass *stmt, QResultClass * res, int rows_
 	UInt4	blocknum;
 	SQLLEN	kres_ridx;
 	UInt2	offset;
-	char	*qval = NULL;
+	PQExpBufferData	qval = {0};
 	int	keys_per_fetch = 10;
-	size_t	allen = 0;
 
+#define	return	DONT_CALL_RETURN_FROM_HERE???
 	for (i = SC_get_rowset_start(stmt), kres_ridx = GIdx2KResIdx(i, stmt, res), rowc = 0;; i++, kres_ridx++)
 	{
 		if (i >= limitrow)
@@ -3307,7 +3317,7 @@ static SQLLEN LoadFromKeyset(StatementClass *stmt, QResultClass * res, int rows_
 			{
 				for (j = rowc; j < keys_per_fetch; j++)
 				{
-					strlcat(qval, j ? ",NULL" : "NULL", allen);
+					appendPQExpBufferStr(&qval, j ? ",NULL" : "NULL");
 				}
 			}
 			rowc = -1; /* end of loop */
@@ -3316,8 +3326,14 @@ static SQLLEN LoadFromKeyset(StatementClass *stmt, QResultClass * res, int rows_
 		{
 			QResultClass	*qres;
 
-			strlcat(qval, ")", allen);
-			qres = CC_send_query(conn, qval, NULL, CREATE_KEYSET | READ_ONLY_QUERY, stmt);
+			appendPQExpBufferStr(&qval, ")");
+			if (PQExpBufferDataBroken(qval))
+			{
+				rcnt = -1;
+				SC_set_error(stmt, STMT_NO_MEMORY_ERROR, "Out of memory in LoadFromKeyset()", func);
+				goto cleanup;
+			}
+			qres = CC_send_query(conn, qval.data, NULL, CREATE_KEYSET | READ_ONLY_QUERY, stmt);
 			if (QR_command_maybe_successful(qres))
 			{
 				SQLLEN		j, k, l;
@@ -3369,10 +3385,9 @@ static SQLLEN LoadFromKeyset(StatementClass *stmt, QResultClass * res, int rows_
 		}
 		if (!rowc)
 		{
-			size_t lodlen = 0;
-
-			if (!qval)
+			if (PQExpBufferDataBroken(qval))
 			{
+				initPQExpBuffer(&qval);
 
 				if (res->reload_count > 0)
 					keys_per_fetch = res->reload_count;
@@ -3388,29 +3403,28 @@ static SQLLEN LoadFromKeyset(StatementClass *stmt, QResultClass * res, int rows_
 						keys_per_fetch = rows_per_fetch;
 					if (!keys_per_fetch)
 						keys_per_fetch = 2;
-					lodlen = strlen(stmt->load_statement);
 					SPRINTF_FIXED(planname, "_KEYSET_%p", res);
-					allen = 8 + strlen(planname) +
-						3 + 4 * keys_per_fetch + 1
-						+ 1 + 2 + lodlen + 20 +
-						4 * keys_per_fetch + 1;
-					SC_MALLOC_return_with_error(qval, char, allen,
-						stmt, "Couldn't alloc qval", -1);
-					snprintf(qval, allen, "PREPARE \"%s\"", planname);
+					printfPQExpBuffer(&qval, "PREPARE \"%s\"", planname);
 					for (j = 0; j < keys_per_fetch; j++)
 					{
-						strlcat(qval, j ? ",tid" : "(tid", allen);
+						appendPQExpBufferStr(&qval, j ? ",tid" : "(tid");
 					}
-					snprintfcat(qval, allen, ") as %s where ctid in ", stmt->load_statement);
+					appendPQExpBuffer(&qval, ") as %s where ctid in ", stmt->load_statement);
 					for (j = 0; j < keys_per_fetch; j++)
 					{
 						if (j == 0)
-							strlcat(qval, "($1", allen);
+							appendPQExpBufferStr(&qval, "($1");
 						else
-							snprintfcat(qval, allen, ",$%d", j + 1);
+							appendPQExpBuffer(&qval, ",$%d", j + 1);
 					}
-					strlcat(qval, ")", allen);
-					qres = CC_send_query(conn, qval, NULL, READ_ONLY_QUERY, stmt);
+					appendPQExpBufferStr(&qval, ")");
+					if (PQExpBufferDataBroken(qval))
+					{
+						rcnt = -1;
+						SC_set_error(stmt, STMT_NO_MEMORY_ERROR, "Out of memory in LoadFromKeyset()", func);
+						goto cleanup;
+					}
+					qres = CC_send_query(conn, qval.data, NULL, READ_ONLY_QUERY, stmt);
 					if (QR_command_maybe_successful(qres))
 					{
 						res->reload_count = keys_per_fetch;
@@ -3424,33 +3438,31 @@ static SQLLEN LoadFromKeyset(StatementClass *stmt, QResultClass * res, int rows_
 					}
 					QR_Destructor(qres);
 				}
-				allen = 25 + 23 * keys_per_fetch;
-
-				SC_REALLOC_return_with_error(qval, char, allen,
-					stmt, "Couldn't alloc qval", -1);
 			}
 			if (res->reload_count > 0)
 			{
-				snprintf(qval, allen, "EXECUTE \"_KEYSET_%p\"(", res);
+				printfPQExpBuffer(&qval, "EXECUTE \"_KEYSET_%p\"(", res);
 			}
 			else
 			{
-				snprintf(qval, allen, "%s where ctid in (", stmt->load_statement);
+				printfPQExpBuffer(&qval, "%s where ctid in (", stmt->load_statement);
 			}
 		}
 		if (0 != (res->keyset[kres_ridx].status & CURS_NEEDS_REREAD))
 		{
 			getTid(res, kres_ridx, &blocknum, &offset);
 			if (rowc)
-				snprintfcat(qval, allen, ",'(%u,%u)'", blocknum, offset);
+				appendPQExpBuffer(&qval, ",'(%u,%u)'", blocknum, offset);
 			else
-				snprintfcat(qval, allen, "'(%u,%u)'", blocknum, offset);
+				appendPQExpBuffer(&qval, "'(%u,%u)'", blocknum, offset);
 			rowc++;
 			rcnt++;
 		}
 	}
-	if (qval)
-		free(qval);
+cleanup:
+#undef	return
+	if (!PQExpBufferDataBroken(qval))
+		termPQExpBuffer(&qval);
 	return rcnt;
 }
 
@@ -3463,15 +3475,14 @@ static SQLLEN LoadFromKeyset_inh(StatementClass *stmt, QResultClass * res, int r
 	UInt4	blocknum;
 	SQLLEN	kres_ridx;
 	UInt2	offset;
-	char	*qval = NULL;
+	PQExpBufferData	qval = {0};
 	int	keys_per_fetch = 10;
 	const char *load_stmt = stmt->load_statement;
 	const ssize_t	from_pos = stmt->load_from_pos;
-	const int	max_identifier = 100;
-	size_t	allen = 0;
 
-mylog(" %s in rows_per_fetch=%d limitrow=%d\n", __FUNCTION__, rows_per_fetch, limitrow);
+MYLOG(0, "entering in rows_per_fetch=%d limitrow=" FORMAT_LEN "\n", rows_per_fetch, limitrow);
 	new_oid = 0;
+#define	return	DONT_CALL_RETURN_FROM_HERE???
 	for (i = SC_get_rowset_start(stmt), kres_ridx = GIdx2KResIdx(i, stmt, res), rowc = 0, oid = 0;; i++, kres_ridx++)
 	{
 		if (i >= limitrow)
@@ -3491,8 +3502,14 @@ mylog(" %s in rows_per_fetch=%d limitrow=%d\n", __FUNCTION__, rows_per_fetch, li
 		{
 			QResultClass	*qres;
 
-			strlcat(qval, ")", allen);
-			qres = CC_send_query(conn, qval, NULL, CREATE_KEYSET | READ_ONLY_QUERY, stmt);
+			appendPQExpBufferStr(&qval, ")");
+			if (PQExpBufferDataBroken(qval))
+			{
+				rcnt = -1;
+				SC_set_error(stmt, STMT_NO_MEMORY_ERROR, "Out of memory in LoadFromKeyset_inh()", __FUNCTION__);
+				goto cleanup;
+			}
+			qres = CC_send_query(conn, qval.data, NULL, CREATE_KEYSET | READ_ONLY_QUERY, stmt);
 			if (QR_command_maybe_successful(qres))
 			{
 				SQLLEN		k, l;
@@ -3547,7 +3564,7 @@ mylog(" %s in rows_per_fetch=%d limitrow=%d\n", __FUNCTION__, rows_per_fetch, li
 		{
 			char table_fqn[256];
 
-			if (!qval)
+			if (PQExpBufferDataBroken(qval))
 			{
 				if (rows_per_fetch >= pre_fetch_count * 2)
 					keys_per_fetch = pre_fetch_count;
@@ -3555,27 +3572,24 @@ mylog(" %s in rows_per_fetch=%d limitrow=%d\n", __FUNCTION__, rows_per_fetch, li
 					keys_per_fetch = rows_per_fetch;
 				if (!keys_per_fetch)
 					keys_per_fetch = 2;
-				allen = from_pos + sizeof("from ") +
-					2 * (2 + max_identifier) + 1 *
-					+ sizeof(" where ctid in ") +
-					20 * keys_per_fetch + 2;
-				SC_MALLOC_return_with_error(qval, char, allen,
-					stmt, "Couldn't alloc qval", -1);
+				initPQExpBuffer(&qval);
 			}
-			snprintf(qval, allen, "%.*sfrom %s where ctid in (", (int) from_pos, load_stmt, ti_quote(stmt, new_oid, table_fqn, sizeof(table_fqn)));
+			printfPQExpBuffer(&qval, "%.*sfrom %s where ctid in (", (int) from_pos, load_stmt, ti_quote(stmt, new_oid, table_fqn, sizeof(table_fqn)));
 		}
 		if (new_oid != oid)
 			oid = new_oid;
 		getTid(res, kres_ridx, &blocknum, &offset);
 		if (rowc)
-			snprintfcat(qval, allen, ",'(%u,%u)'", blocknum, offset);
+			appendPQExpBuffer(&qval, ",'(%u,%u)'", blocknum, offset);
 		else
-			snprintfcat(qval, allen, "'(%u,%u)'", blocknum, offset);
+			appendPQExpBuffer(&qval, "'(%u,%u)'", blocknum, offset);
 		rowc++;
 		rcnt++;
 	}
-	if (qval)
-		free(qval);
+cleanup:
+#undef	return
+	if (!PQExpBufferDataBroken(qval))
+		termPQExpBuffer(&qval);
 	return rcnt;
 }
 
@@ -3592,7 +3606,7 @@ SC_pos_reload_needed(StatementClass *stmt, SQLULEN req_size, UDWORD flag)
 	Int4		rows_per_fetch;
 	BOOL		create_from_scratch = (0 != flag);
 
-	mylog("%s\n", func);
+	MYLOG(0, "entering\n");
 	if (!(res = SC_get_Curres(stmt)))
 	{
 		SC_set_error(stmt, STMT_INVALID_CURSOR_STATE_ERROR, "Null statement result in SC_pos_reload_needed.", func);
@@ -3687,7 +3701,7 @@ SC_pos_newload(StatementClass *stmt, const UInt4 *oidint, BOOL tidRef,
 	QResultClass *res, *qres;
 	RETCODE		ret = SQL_ERROR;
 
-	mylog("positioned new ti=%p\n", stmt->ti);
+	MYLOG(0, "entering ti=%p\n", stmt->ti);
 	if (!(res = SC_get_Curres(stmt)))
 	{
 		SC_set_error(stmt, STMT_INVALID_CURSOR_STATE_ERROR, "Null statement result in SC_pos_newload.", func);
@@ -3733,7 +3747,7 @@ SC_pos_newload(StatementClass *stmt, const UInt4 *oidint, BOOL tidRef,
 						appendData = TRUE;
 					else
 					{
-inolog("total %d <> backend %d - base %d + start %d cursor_type=%d\n",
+MYLOG(DETAIL_LOG_LEVEL, "total " FORMAT_LEN " <> backend " FORMAT_LEN " - base " FORMAT_LEN " + start " FORMAT_LEN " cursor_type=%d\n",
 num_total_rows, num_cached_rows,
 QR_get_rowstart_in_cache(res), SC_get_rowset_start(stmt), stmt->options.cursor_type);
 					}
@@ -3760,7 +3774,7 @@ QR_get_rowstart_in_cache(res), SC_get_rowset_start(stmt), stmt->options.cursor_t
 			}
 			if (appendData)
 			{
-inolog("total %d == backend %d - base %d + start %d cursor_type=%d\n",
+MYLOG(DETAIL_LOG_LEVEL, "total " FORMAT_LEN " == backend " FORMAT_LEN " - base " FORMAT_LEN " + start " FORMAT_LEN " cursor_type=%d\n",
 num_total_rows, num_cached_rows,
 QR_get_rowstart_in_cache(res), SC_get_rowset_start(stmt), stmt->options.cursor_type);
 				if (num_cached_rows >= res->count_backend_allocated)
@@ -3866,9 +3880,9 @@ pos_update_callback(RETCODE retcode, void *para)
 
 	if (s->updyes)
 	{
-		mylog("pos_update_callback in\n");
+		MYLOG(0, "entering\n");
 		ret = irow_update(ret, s->stmt, s->qstmt, s->global_ridx, &s->old_keyset);
-inolog("irow_update ret=%d,%d\n", ret, SC_get_errornumber(s->qstmt));
+MYLOG(DETAIL_LOG_LEVEL, "irow_update ret=%d,%d\n", ret, SC_get_errornumber(s->qstmt));
 		if (ret != SQL_SUCCESS)
 			SC_error_copy(s->stmt, s->qstmt, TRUE);
 		PGAPI_FreeStmt(s->qstmt, SQL_DROP);
@@ -3919,8 +3933,8 @@ SC_pos_update(StatementClass *stmt,
 	BindInfoClass *bindings = opts->bindings;
 	TABLE_INFO	*ti;
 	FIELD_INFO	**fi;
-	char		updstr[4096];
-	RETCODE		ret;
+	PQExpBufferData		updstr = {0};
+	RETCODE		ret = SQL_ERROR;
 	OID	oid;
 	UInt4	blocknum;
 	UInt2	pgoffset;
@@ -3940,7 +3954,7 @@ SC_pos_update(StatementClass *stmt,
 		SC_set_error(s.stmt, STMT_INVALID_CURSOR_STATE_ERROR, "Null statement result in SC_pos_update.", func);
 		return SQL_ERROR;
 	}
-	mylog("POS UPDATE %d+%d fi=%p ti=%p\n", s.irow, QR_get_rowstart_in_cache(s.res), fi, s.stmt->ti);
+	MYLOG(0, "entering " FORMAT_POSIROW "+" FORMAT_LEN " fi=%p ti=%p\n", s.irow, QR_get_rowstart_in_cache(s.res), fi, s.stmt->ti);
 	if (SC_update_not_ready(stmt))
 		parse_statement(s.stmt, TRUE);	/* not preferable */
 	if (!SC_is_updatable(s.stmt))
@@ -3982,7 +3996,9 @@ SC_pos_update(StatementClass *stmt,
 
 	ti = s.stmt->ti[0];
 
-	SPRINTF_FIXED(updstr,
+	initPQExpBuffer(&updstr);
+#define	return	DONT_CALL_RETURN_FROM_HERE???
+	printfPQExpBuffer(&updstr,
 			 "update %s set", ti_quote(stmt, oid, table_fqn, sizeof(table_fqn)));
 
 	num_cols = s.irdflds->nfields;
@@ -3996,20 +4012,20 @@ SC_pos_update(StatementClass *stmt,
 				used = LENADDR_SHIFT(used, bind_size * s.irow);
 			else
 				used = LENADDR_SHIFT(used, s.irow * sizeof(SQLLEN));
-			mylog("%d used=%d,%p\n", i, *used, used);
+			MYLOG(0, "%d used=" FORMAT_LEN ",%p\n", i, *used, used);
 			if (*used != SQL_IGNORE && fi[i]->updatable)
 			{
 				if (upd_cols)
-					SPRINTFCAT_FIXED(updstr,
+					appendPQExpBuffer(&updstr,
 								 ", \"%s\" = ?", GET_NAME(fi[i]->column_name));
 				else
-					SPRINTFCAT_FIXED(updstr,
+					appendPQExpBuffer(&updstr,
 								 " \"%s\" = ?", GET_NAME(fi[i]->column_name));
 				upd_cols++;
 			}
 		}
 		else
-			mylog("%d null bind\n", i);
+			MYLOG(0, "%d null bind\n", i);
 	}
 	conn = SC_get_conn(s.stmt);
 	s.updyes = FALSE;
@@ -4025,28 +4041,28 @@ SC_pos_update(StatementClass *stmt,
 		const char *bestqual = GET_NAME(ti->bestqual);
 		int	unknown_sizes = ci->drivers.unknown_sizes;
 
-		SPRINTFCAT_FIXED(updstr,
+		appendPQExpBuffer(&updstr,
 					 " where ctid = '(%u, %u)'",
 					 blocknum, pgoffset);
 		if (bestqual)
 		{
-			SPRINTFCAT_FIXED(updstr, " and ");
-			SPRINTFCAT_FIXED(updstr, bestqual, oid);
+			appendPQExpBuffer(&updstr, " and ");
+			appendPQExpBuffer(&updstr, bestqual, oid);
 		}
 		if (PG_VERSION_GE(conn, 8.2))
 		{
-			SPRINTFCAT_FIXED(updstr, " returning ctid");
+			appendPQExpBuffer(&updstr, " returning ctid");
 			if (bestitem)
 			{
-				SPRINTFCAT_FIXED(updstr, ", ");
-				SPRINTFCAT_FIXED(updstr, "\"%s\"", bestitem);
+				appendPQExpBuffer(&updstr, ", ");
+				appendPQExpBuffer(&updstr, "\"%s\"", bestitem);
 			}
 		}
-		mylog("updstr=%s\n", updstr);
+		MYLOG(0, "updstr=%s\n", updstr.data);
 		if (PGAPI_AllocStmt(conn, &hstmt, 0) != SQL_SUCCESS)
 		{
 			SC_set_error(s.stmt, STMT_NO_MEMORY_ERROR, "internal AllocStmt error", func);
-			return SQL_ERROR;
+			goto cleanup;
 		}
 		s.qstmt = (StatementClass *) hstmt;
 		apdopts = SC_get_APDF(s.qstmt);
@@ -4064,7 +4080,7 @@ SC_pos_update(StatementClass *stmt,
 					used = LENADDR_SHIFT(used, bind_size * s.irow);
 				else
 					used = LENADDR_SHIFT(used, s.irow * sizeof(SQLLEN));
-				mylog("%d used=%d\n", i, *used);
+				MYLOG(0, "%d used=" FORMAT_LEN "\n", i, *used);
 				if (*used != SQL_IGNORE && fi[i]->updatable)
 				{
 					/* fieldtype = QR_get_field_type(s.res, i); */
@@ -4085,19 +4101,25 @@ SC_pos_update(StatementClass *stmt,
 		}
 		s.qstmt->exec_start_row = s.qstmt->exec_end_row = s.irow;
 		s.updyes = TRUE;
-		ret = PGAPI_ExecDirect(hstmt, (SQLCHAR *) updstr, SQL_NTS, 0);
+		if (PQExpBufferDataBroken(updstr))
+		{
+			SC_set_error(stmt, STMT_NO_MEMORY_ERROR, "Out of memory in SC_pos_updatet()", func);
+			goto cleanup;
+		}
+		ret = PGAPI_ExecDirect(hstmt, (SQLCHAR *) updstr.data, SQL_NTS, 0);
 		if (ret == SQL_NEED_DATA)
 		{
 			pup_cdata *cbdata = (pup_cdata *) malloc(sizeof(pup_cdata));
 			if (!cbdata)
 			{
 				SC_set_error(s.stmt, STMT_NO_MEMORY_ERROR, "Could not allocate memory for cbdata", func);
-				return SQL_ERROR;
+				ret = SQL_ERROR;
+				goto cleanup;
 			}
 			memcpy(cbdata, &s, sizeof(pup_cdata));
 			if (0 == enqueueNeedDataCallback(s.stmt, pos_update_callback, cbdata))
 				ret = SQL_ERROR;
-			return ret;
+			goto cleanup;
 		}
 		/* else if (ret != SQL_SUCCESS) this is unneccesary
 			SC_error_copy(s.stmt, s.qstmt, TRUE); */
@@ -4109,6 +4131,11 @@ SC_pos_update(StatementClass *stmt,
 	}
 
 	ret = pos_update_callback(ret, &s);
+
+cleanup:
+#undef	return
+	if (!PQExpBufferDataBroken(updstr))
+		termPQExpBuffer(&updstr);
 	return ret;
 }
 RETCODE
@@ -4120,7 +4147,7 @@ SC_pos_delete(StatementClass *stmt,
 	QResultClass *res, *qres;
 	ConnectionClass	*conn = SC_get_conn(stmt);
 	IRDFields	*irdflds = SC_get_IRDF(stmt);
-	char		dltstr[4096];
+	PQExpBufferData		dltstr = {0};
 	RETCODE		ret;
 	SQLLEN		kres_ridx;
 	OID		oid;
@@ -4131,7 +4158,7 @@ SC_pos_delete(StatementClass *stmt,
 	BOOL		idx_exist = TRUE;
 	char		table_fqn[256];
 
-	mylog("POS DELETE ti=%p\n", stmt->ti);
+	MYLOG(0, "entering ti=%p\n", stmt->ti);
 	if (!(res = SC_get_Curres(stmt)))
 	{
 		SC_set_error(stmt, STMT_INVALID_CURSOR_STATE_ERROR, "Null statement result in SC_pos_delete.", func);
@@ -4177,21 +4204,29 @@ SC_pos_delete(StatementClass *stmt,
 		blocknum = keyset->blocknum;
 		offset = keyset->offset;
 	}
-	SPRINTF_FIXED(dltstr,
+	initPQExpBuffer(&dltstr);
+#define	return	DONT_CALL_RETURN_FROM_HERE???
+	printfPQExpBuffer(&dltstr,
 			 "delete from %s where ctid = '(%u, %u)'",
 			 ti_quote(stmt, oid, table_fqn, sizeof(table_fqn)), blocknum, offset);
 	if (bestqual && !TI_has_subclass(ti))
 	{
-		SPRINTFCAT_FIXED(dltstr, " and ");
-		SPRINTFCAT_FIXED(dltstr, bestqual, oid);
+		appendPQExpBuffer(&dltstr, " and ");
+		appendPQExpBuffer(&dltstr, bestqual, oid);
 	}
 
-	mylog("dltstr=%s\n", dltstr);
+	if (PQExpBufferDataBroken(dltstr))
+	{
+		ret = SQL_ERROR;
+		SC_set_error(stmt, STMT_NO_MEMORY_ERROR, "Out of memory in SC_pos_delete()", func);
+		goto cleanup;
+	}
+	MYLOG(0, "dltstr=%s\n", dltstr.data);
 	qflag = 0;
         if (stmt->external && !CC_is_in_trans(conn) &&
                  (!CC_does_autocommit(conn)))
 		qflag |= GO_INTO_TRANSACTION;
-	qres = CC_send_query(conn, dltstr, NULL, qflag, stmt);
+	qres = CC_send_query(conn, dltstr.data, NULL, qflag, stmt);
 	ret = SQL_SUCCESS;
 	if (QR_command_maybe_successful(qres))
 	{
@@ -4247,7 +4282,7 @@ SC_pos_delete(StatementClass *stmt,
 		}
 		else
 			res->keyset[kres_ridx].status |= (SQL_ROW_DELETED | CURS_SELF_DELETED);
-inolog(".status[%d]=%x\n", global_ridx, res->keyset[kres_ridx].status);
+MYLOG(DETAIL_LOG_LEVEL, ".status[" FORMAT_ULEN "]=%x\n", global_ridx, res->keyset[kres_ridx].status);
 	}
 	if (irdflds->rowStatusArray)
 	{
@@ -4260,6 +4295,11 @@ inolog(".status[%d]=%x\n", global_ridx, res->keyset[kres_ridx].status);
 				irdflds->rowStatusArray[irow] = ret;
 		}
 	}
+
+cleanup:
+#undef return
+	if (!PQExpBufferDataBroken(dltstr))
+		termPQExpBuffer(&dltstr);
 	return ret;
 }
 
@@ -4345,7 +4385,7 @@ pos_add_callback(RETCODE retcode, void *para)
 	{
 		SQLSETPOSIROW	brow_save;
 
-		mylog("pos_add_callback in ret=%d\n", ret);
+		MYLOG(0, "entering ret=%d\n", ret);
 		brow_save = s->stmt->bind_row;
 		s->stmt->bind_row = s->irow;
 		if (QR_get_cursor(s->res))
@@ -4411,7 +4451,7 @@ SC_pos_add(StatementClass *stmt,
 	IPDFields	*ipdopts;
 	BindInfoClass *bindings = opts->bindings;
 	FIELD_INFO	**fi = SC_get_IRDF(stmt)->fi;
-	char		addstr[4096];
+	PQExpBufferData		addstr = {0};
 	RETCODE		ret;
 	SQLULEN		offset;
 	SQLLEN		*used;
@@ -4421,7 +4461,7 @@ SC_pos_add(StatementClass *stmt,
 	int		func_cs_count = 0;
 	char		table_fqn[256];
 
-	mylog("POS ADD fi=%p ti=%p\n", fi, stmt->ti);
+	MYLOG(0, "entering fi=%p ti=%p\n", fi, stmt->ti);
 	s.stmt = stmt;
 	s.irow = irow;
 	if (!(s.res = SC_get_Curres(s.stmt)))
@@ -4441,14 +4481,16 @@ SC_pos_add(StatementClass *stmt,
 	num_cols = s.irdflds->nfields;
 	conn = SC_get_conn(s.stmt);
 
-	SPRINTF_FIXED(addstr,
-			 "insert into %s (",
-			 ti_quote(s.stmt, 0, table_fqn, sizeof(table_fqn)));
 	if (PGAPI_AllocStmt(conn, &hstmt, 0) != SQL_SUCCESS)
 	{
 		SC_set_error(s.stmt, STMT_NO_MEMORY_ERROR, "internal AllocStmt error", func);
 		return SQL_ERROR;
 	}
+	initPQExpBuffer(&addstr);
+#define	return	DONT_CALL_RETURN_FROM_HERE???
+	printfPQExpBuffer(&addstr,
+			 "insert into %s (",
+			 ti_quote(s.stmt, 0, table_fqn, sizeof(table_fqn)));
 	if (opts->row_offset_ptr)
 		offset = *opts->row_offset_ptr;
 	else
@@ -4471,16 +4513,16 @@ SC_pos_add(StatementClass *stmt,
 				used = LENADDR_SHIFT(used, bind_size * s.irow);
 			else
 				used = LENADDR_SHIFT(used, s.irow * sizeof(SQLLEN));
-			mylog("%d used=%d\n", i, *used);
+			MYLOG(0, "%d used=" FORMAT_LEN "\n", i, *used);
 			if (*used != SQL_IGNORE && fi[i]->updatable)
 			{
 				/* fieldtype = QR_get_field_type(s.res, i); */
 				fieldtype = getEffectiveOid(conn, fi[i]);
 				if (add_cols)
-					SPRINTFCAT_FIXED(addstr,
+					appendPQExpBuffer(&addstr,
 								 ", \"%s\"", GET_NAME(fi[i]->column_name));
 				else
-					SPRINTFCAT_FIXED(addstr,
+					appendPQExpBuffer(&addstr,
 								 "\"%s\"", GET_NAME(fi[i]->column_name));
 				PIC_set_pgtype(ipdopts->parameters[add_cols], fieldtype);
 				PGAPI_BindParameter(hstmt,
@@ -4496,38 +4538,44 @@ SC_pos_add(StatementClass *stmt,
 			}
 		}
 		else
-			mylog("%d null bind\n", i);
+			MYLOG(0, "%d null bind\n", i);
 	}
 	s.updyes = FALSE;
-#define	return	DONT_CALL_RETURN_FROM_HERE???
 	ENTER_INNER_CONN_CS(conn, func_cs_count);
 	if (add_cols > 0)
 	{
-		SPRINTFCAT_FIXED(addstr, ") values (");
+		appendPQExpBuffer(&addstr, ") values (");
 		for (i = 0; i < add_cols; i++)
 		{
 			if (i)
-				SPRINTFCAT_FIXED(addstr, ", ?");
+				appendPQExpBuffer(&addstr, ", ?");
 			else
-				SPRINTFCAT_FIXED(addstr, "?");
+				appendPQExpBuffer(&addstr, "?");
 		}
-		SPRINTFCAT_FIXED(addstr, ")");
+		appendPQExpBuffer(&addstr, ")");
 		if (PG_VERSION_GE(conn, 8.2))
 		{
 			TABLE_INFO	*ti = stmt->ti[0];
 			const char *bestitem = GET_NAME(ti->bestitem);
 
-			SPRINTFCAT_FIXED(addstr, " returning ctid");
+			appendPQExpBuffer(&addstr, " returning ctid");
 			if (bestitem)
 			{
-				SPRINTFCAT_FIXED(addstr, ", ");
-				SPRINTFCAT_FIXED(addstr, "\"%s\"", bestitem);
+				appendPQExpBuffer(&addstr, ", ");
+				appendPQExpBuffer(&addstr, "\"%s\"", bestitem);
 			}
 		}
-		mylog("addstr=%s\n", addstr);
+		if (PQExpBufferDataBroken(addstr))
+		{
+			ret = SQL_ERROR;
+			SC_set_error(stmt, STMT_NO_MEMORY_ERROR, "Out of memory in SC_pos_add()", func);
+			goto cleanup;
+		}
+		MYLOG(0, "addstr=%s\n", addstr.data);
+		mylog("addstr=%s\n", addstr.data);
 		s.qstmt->exec_start_row = s.qstmt->exec_end_row = s.irow;
 		s.updyes = TRUE;
-		ret = PGAPI_ExecDirect(hstmt, (SQLCHAR *) addstr, SQL_NTS, 0);
+		ret = PGAPI_ExecDirect(hstmt, (SQLCHAR *) addstr.data, SQL_NTS, 0);
 		if (ret == SQL_NEED_DATA)
 		{
 			padd_cdata *cbdata = (padd_cdata *) malloc(sizeof(padd_cdata));
@@ -4556,6 +4604,8 @@ SC_pos_add(StatementClass *stmt,
 cleanup:
 #undef	return
 	CLEANUP_FUNC_CONN_CS(func_cs_count, conn);
+	if (!PQExpBufferDataBroken(addstr))
+		termPQExpBuffer(&addstr);
 	return ret;
 }
 
@@ -4642,7 +4692,7 @@ RETCODE spos_callback(RETCODE retcode, void *para)
 	SQLLEN	kres_ridx, pos_ridx = 0;
 
 	ret = retcode;
-	mylog("%s: %d in\n", func, s->need_data_callback);
+	MYLOG(0, "entering %d in\n", s->need_data_callback);
 	if (s->need_data_callback)
 	{
 		s->processed++;
@@ -4742,11 +4792,11 @@ RETCODE spos_callback(RETCODE retcode, void *para)
 	else if (SC_get_IRDF(s->stmt)->rowsFetched)
 		*(SC_get_IRDF(s->stmt)->rowsFetched) = s->processed;
 	res->recent_processed_row_count = s->stmt->diag_row_count = s->processed;
-if (opts)
-{
-inolog("processed=%d ret=%d rowset=%d", s->processed, ret, opts->size_of_rowset_odbc2);
-inolog(",%d\n", opts->size_of_rowset);
-}
+	if (opts) /* logging */
+	{
+		MYLOG(DETAIL_LOG_LEVEL, "processed=" FORMAT_POSIROW " ret=%d rowset=" FORMAT_LEN, s->processed, ret, opts->size_of_rowset_odbc2);
+		MYPRINTF(DETAIL_LOG_LEVEL, "," FORMAT_LEN "\n", opts->size_of_rowset);
+	}
 
 	return ret;
 }
@@ -4784,7 +4834,7 @@ PGAPI_SetPos(HSTMT hstmt,
 	s.opts = SC_get_ARDF(s.stmt);
 	gdata_info = SC_get_GDTI(s.stmt);
 	gdata = gdata_info->gdata;
-	mylog("%s fOption=%d irow=%d lock=%d currt=%d\n", func, s.fOption, s.irow, fLock, s.stmt->currTuple);
+	MYLOG(0, "entering fOption=%d irow=" FORMAT_POSIROW " lock=%hu currt=" FORMAT_LEN "\n", s.fOption, s.irow, fLock, s.stmt->currTuple);
 	if (s.stmt->options.scroll_concurrency != SQL_CONCUR_READ_ONLY)
 		;
 	else if (s.fOption != SQL_POSITION && s.fOption != SQL_REFRESH)
@@ -4821,7 +4871,7 @@ PGAPI_SetPos(HSTMT hstmt,
 	}
 
 	gdata_allocated = gdata_info->allocated;
-mylog("num_cols=%d gdatainfo=%d\n", QR_NumPublicResultCols(s.res), gdata_allocated);
+MYLOG(0, "num_cols=%d gdatainfo=%d\n", QR_NumPublicResultCols(s.res), gdata_allocated);
 	/* Reset for SQLGetData */
 	if (gdata)
 	{
@@ -4851,7 +4901,7 @@ mylog("num_cols=%d gdatainfo=%d\n", QR_NumPublicResultCols(s.res), gdata_allocat
 		SC_set_error(s.stmt, STMT_ROW_OUT_OF_RANGE, "the row was deleted?", func);
 		ret = SQL_ERROR;
 	}
-	mylog("%s returning %d\n", func, ret);
+	MYLOG(0, "leaving %d\n", ret);
 	return ret;
 }
 
@@ -4866,8 +4916,8 @@ PGAPI_SetScrollOptions(HSTMT hstmt,
 	CSTR func = "PGAPI_SetScrollOptions";
 	StatementClass *stmt = (StatementClass *) hstmt;
 
-	mylog("%s: fConcurrency=%d crowKeyset=%d crowRowset=%d\n",
-		  func, fConcurrency, crowKeyset, crowRowset);
+	MYLOG(0, "entering fConcurrency=%d crowKeyset=" FORMAT_LEN " crowRowset=%d\n",
+		  fConcurrency, crowKeyset, crowRowset);
 	SC_set_error(stmt, STMT_NOT_IMPLEMENTED_ERROR, "SetScroll option not implemeted", func);
 
 	return SQL_ERROR;
@@ -4883,7 +4933,7 @@ PGAPI_SetCursorName(HSTMT hstmt,
 	CSTR func = "PGAPI_SetCursorName";
 	StatementClass *stmt = (StatementClass *) hstmt;
 
-	mylog("%s: hstmt=%p, szCursor=%p, cbCursorMax=%d\n", func, hstmt, szCursor, cbCursor);
+	MYLOG(0, "entering hstmt=%p, szCursor=%p, cbCursorMax=%d\n", hstmt, szCursor, cbCursor);
 
 	if (!stmt)
 	{
@@ -4908,7 +4958,7 @@ PGAPI_GetCursorName(HSTMT hstmt,
 	size_t		len = 0;
 	RETCODE		result;
 
-	mylog("%s: hstmt=%p, szCursor=%p, cbCursorMax=%d, pcbCursor=%p\n", func, hstmt, szCursor, cbCursorMax, pcbCursor);
+	MYLOG(0, "entering hstmt=%p, szCursor=%p, cbCursorMax=%d, pcbCursor=%p\n", hstmt, szCursor, cbCursorMax, pcbCursor);
 
 	if (!stmt)
 	{
@@ -4965,7 +5015,7 @@ SC_fetch_by_bookmark(StatementClass *stmt)
 	TupleField	*otuple, *ituple;
 	SQLUSMALLINT	*rowStatusArray;
 
-	mylog("%s in\n", __FUNCTION__);
+	MYLOG(0, "entering\n");
 
 	if (!(res = SC_get_Curres(stmt)))
 	{
@@ -4995,7 +5045,7 @@ SC_fetch_by_bookmark(StatementClass *stmt)
 		pg_bm = SC_Resolve_bookmark(opts, i);
 		bidx = pg_bm.index;
 
-mylog("i=%d bidx=%d cached=%d\n", i, bidx, res->num_cached_keys);
+MYLOG(0, "i=%d bidx=" FORMAT_LEN " cached=" FORMAT_ULEN "\n", i, bidx, res->num_cached_keys);
 		kres_ridx = GIdx2KResIdx(bidx, stmt, res);
 		if (kres_ridx < 0 || kres_ridx >= res->num_cached_keys)
 		{
@@ -5024,7 +5074,7 @@ mylog("i=%d bidx=%d cached=%d\n", i, bidx, res->num_cached_keys);
 			getTid(res, kres_ridx, &blocknum, &offset);
 		}
 		snprintf(tidbuf + i * tidbuflen, tidbuflen, "(%u,%u)", blocknum, offset);
-		mylog("!!!! tidbuf=%s\n", tidbuf + i * tidbuflen);
+		MYLOG(0, "!!!! tidbuf=%s\n", tidbuf + i * tidbuflen);
 	}
 	if (!SQL_SUCCEEDED(PGAPI_BindParameter(hstmt, 1, SQL_PARAM_INPUT,
 			SQL_C_CHAR, SQL_CHAR, tidbuflen, 0,
@@ -5078,7 +5128,7 @@ mylog("i=%d bidx=%d cached=%d\n", i, bidx, res->num_cached_keys);
 	opts->bookmark = NULL;
 	ret = PGAPI_ExtendedFetch(fstmt, SQL_FETCH_NEXT, 0,
 		&cRow, NULL, 0, size_of_rowset);
-	mylog("%s cRow=" FORMAT_ULEN "\n", __FUNCTION__, cRow);
+	MYLOG(0, "cRow=" FORMAT_ULEN "\n", cRow);
 
 cleanup:
 	if (NULL != hstmt)

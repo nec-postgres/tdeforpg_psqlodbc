@@ -48,7 +48,7 @@ PGAPI_BindParameter(HSTMT hstmt,
 	IPDFields	*ipdopts;
 	PutDataInfo	*pdata_info;
 
-	mylog("%s: entering...\n", func);
+	MYLOG(0, "entering...\n");
 
 	if (!stmt)
 	{
@@ -135,8 +135,8 @@ PGAPI_BindParameter(HSTMT hstmt,
 	if (stmt->status == STMT_DESCRIBED)
 		SC_recycle_statement(stmt);
 
-	mylog("%s: ipar=%d, paramType=%d, fCType=%d, fSqlType=%d, cbColDef=%d, ibScale=%d,", func, ipar, fParamType, fCType, fSqlType, cbColDef, ibScale);
-	mylog("rgbValue=%p(%d), pcbValue=%p\n", rgbValue, cbValueMax, pcbValue);
+	MYLOG(0, "ipar=%d, paramType=%d, fCType=%d, fSqlType=%d, cbColDef=" FORMAT_ULEN ", ibScale=%d,", ipar, fParamType, fCType, fSqlType, cbColDef, ibScale);
+	MYPRINTF(0, "rgbValue=%p(" FORMAT_LEN "), pcbValue=%p\n", rgbValue, cbValueMax, pcbValue);
 
 	return SQL_SUCCESS;
 }
@@ -158,10 +158,10 @@ PGAPI_BindCol(HSTMT hstmt,
 	BindInfoClass	*bookmark;
 	RETCODE		ret = SQL_SUCCESS;
 
-	mylog("%s: entering...\n", func);
+	MYLOG(0, "entering...\n");
 
-	mylog("**** PGAPI_BindCol: stmt = %p, icol = %d\n", stmt, icol);
-	mylog("**** : fCType=%d rgb=%p valusMax=%d pcb=%p\n", fCType, rgbValue, cbValueMax, pcbValue);
+	MYLOG(0, "**** : stmt = %p, icol = %d\n", stmt, icol);
+	MYLOG(0, "**** : fCType=%d rgb=%p valusMax=" FORMAT_LEN " pcb=%p\n", fCType, rgbValue, cbValueMax, pcbValue);
 
 	if (!stmt)
 	{
@@ -201,7 +201,7 @@ PGAPI_BindCol(HSTMT hstmt,
 					break;
 				default:
 					SC_set_error(stmt, STMT_PROGRAM_TYPE_OUT_OF_RANGE, "Bind column 0 is not of type SQL_C_BOOKMARK", func);
-inolog("Bind column 0 is type %d not of type SQL_C_BOOKMARK", fCType);
+MYLOG(DETAIL_LOG_LEVEL, "Bind column 0 is type %d not of type SQL_C_BOOKMARK\n", fCType);
 					ret = SQL_ERROR;
 					goto cleanup;
 			}
@@ -281,7 +281,7 @@ inolog("Bind column 0 is type %d not of type SQL_C_BOOKMARK", fCType);
 		}
 		opts->bindings[icol].scale = 0;
 
-		mylog("       bound buffer[%d] = %p\n", icol, opts->bindings[icol].buffer);
+		MYLOG(0, "       bound buffer[%d] = %p\n", icol, opts->bindings[icol].buffer);
 	}
 
 cleanup:
@@ -314,7 +314,7 @@ PGAPI_DescribeParam(HSTMT hstmt,
 	OID		pgtype;
 	ConnectionClass	*conn;
 
-	mylog("%s: entering...%d\n", func, ipar);
+	MYLOG(0, "entering...%d\n", ipar);
 
 	if (!stmt)
 	{
@@ -336,7 +336,7 @@ PGAPI_DescribeParam(HSTMT hstmt,
 	}
 	if ((ipar < 1) || (ipar > num_params))
 	{
-inolog("num_params=%d\n", stmt->num_params);
+MYLOG(DETAIL_LOG_LEVEL, "num_params=%d\n", stmt->num_params);
 		SC_set_error(stmt, STMT_BAD_PARAMETER_NUMBER_ERROR, "Invalid parameter number for PGAPI_DescribeParam.", func);
 		return SQL_ERROR;
 	}
@@ -347,7 +347,7 @@ inolog("num_params=%d\n", stmt->num_params);
 	if (NOT_YET_PREPARED == stmt->prepared)
 	{
 		decideHowToPrepare(stmt, FALSE);
-inolog("howTo=%d\n", SC_get_prepare_method(stmt));
+MYLOG(DETAIL_LOG_LEVEL, "howTo=%d\n", SC_get_prepare_method(stmt));
 		switch (SC_get_prepare_method(stmt))
 		{
 			case NAMED_PARSE_REQUEST:
@@ -367,7 +367,7 @@ inolog("howTo=%d\n", SC_get_prepare_method(stmt));
 	/* parameter markers, not bound parameters.  */
 	if (pfSqlType)
 	{
-inolog("[%d].SQLType=%d .PGType=%d\n", ipar, ipdopts->parameters[ipar].SQLType, pgtype);
+MYLOG(DETAIL_LOG_LEVEL, "[%d].SQLType=%d .PGType=%d\n", ipar, ipdopts->parameters[ipar].SQLType, pgtype);
 		if (ipdopts->parameters[ipar].SQLType)
 			*pfSqlType = ipdopts->parameters[ipar].SQLType;
 		else if (pgtype)
@@ -422,7 +422,7 @@ PGAPI_NumParams(HSTMT hstmt,
 	StatementClass *stmt = (StatementClass *) hstmt;
 	CSTR func = "PGAPI_NumParams";
 
-	mylog("%s: entering...\n", func);
+	MYLOG(0, "entering...\n");
 
 	if (!stmt)
 	{
@@ -437,7 +437,7 @@ PGAPI_NumParams(HSTMT hstmt,
 		SC_set_error(stmt, STMT_EXEC_ERROR, "parameter count address is null", func);
 		return SQL_ERROR;
 	}
-inolog("num_params=%d,%d\n", stmt->num_params, stmt->proc_return);
+MYLOG(DETAIL_LOG_LEVEL, "num_params=%d,%d\n", stmt->num_params, stmt->proc_return);
 	if (stmt->num_params >= 0)
 		*pcpar = stmt->num_params;
 	else if (!stmt->statement)
@@ -456,7 +456,7 @@ inolog("num_params=%d,%d\n", stmt->num_params, stmt->proc_return);
 		stmt->proc_return = proc_return;
 		stmt->multi_statement = multi;
 	}
-inolog("num_params=%d,%d\n", stmt->num_params, stmt->proc_return);
+MYLOG(DETAIL_LOG_LEVEL, "num_params=%d,%d\n", stmt->num_params, stmt->proc_return);
 	return SQL_SUCCESS;
 }
 
@@ -488,10 +488,9 @@ create_empty_bindings(int num_columns)
 void
 extend_parameter_bindings(APDFields *self, int num_params)
 {
-	CSTR func = "extend_parameter_bindings";
 	ParameterInfoClass *new_bindings;
 
-	mylog("%s: entering ... self=%p, parameters_allocated=%d, num_params=%d,%p\n", func, self, self->allocated, num_params, self->parameters);
+	MYLOG(0, "entering ... self=%p, parameters_allocated=%d, num_params=%d,%p\n", self, self->allocated, num_params, self->parameters);
 
 	/*
 	 * if we have too few, allocate room for more, and copy the old
@@ -502,7 +501,7 @@ extend_parameter_bindings(APDFields *self, int num_params)
 		new_bindings = (ParameterInfoClass *) realloc(self->parameters, sizeof(ParameterInfoClass) * num_params);
 		if (!new_bindings)
 		{
-			mylog("%s: unable to create %d new bindings from %d old bindings\n", func, num_params, self->allocated);
+			MYLOG(0, "unable to create %d new bindings from %d old bindings\n", num_params, self->allocated);
 
 			if (self->parameters)
 				free(self->parameters);
@@ -516,16 +515,15 @@ extend_parameter_bindings(APDFields *self, int num_params)
 		self->allocated = num_params;
 	}
 
-	mylog("exit %s=%p\n", func, self->parameters);
+	MYLOG(0, "leaving %p\n", self->parameters);
 }
 
 void
 extend_iparameter_bindings(IPDFields *self, int num_params)
 {
-	CSTR func = "extend_iparameter_bindings";
 	ParameterImplClass *new_bindings;
 
-	mylog("%s: entering ... self=%p, parameters_allocated=%d, num_params=%d\n", func, self, self->allocated, num_params);
+	MYLOG(0, "entering ... self=%p, parameters_allocated=%d, num_params=%d\n", self, self->allocated, num_params);
 
 	/*
 	 * if we have too few, allocate room for more, and copy the old
@@ -536,7 +534,7 @@ extend_iparameter_bindings(IPDFields *self, int num_params)
 		new_bindings = (ParameterImplClass *) realloc(self->parameters, sizeof(ParameterImplClass) * num_params);
 		if (!new_bindings)
 		{
-			mylog("%s: unable to create %d new bindings from %d old bindings\n", func, num_params, self->allocated);
+			MYLOG(0, "unable to create %d new bindings from %d old bindings\n", num_params, self->allocated);
 
 			if (self->parameters)
 				free(self->parameters);
@@ -551,15 +549,14 @@ extend_iparameter_bindings(IPDFields *self, int num_params)
 		self->allocated = num_params;
 	}
 
-	mylog("exit %s=%p\n", func, self->parameters);
+	MYLOG(0, "leaving %p\n", self->parameters);
 }
 
 void
 reset_a_parameter_binding(APDFields *self, int ipar)
 {
-	CSTR func = "reset_a_parameter_binding";
 
-	mylog("%s: entering ... self=%p, parameters_allocated=%d, ipar=%d\n", func, self, self->allocated, ipar);
+	MYLOG(0, "entering ... self=%p, parameters_allocated=%d, ipar=%d\n", self, self->allocated, ipar);
 
 	if (ipar < 1 || ipar > self->allocated)
 		return;
@@ -579,9 +576,7 @@ reset_a_parameter_binding(APDFields *self, int ipar)
 void
 reset_a_iparameter_binding(IPDFields *self, int ipar)
 {
-	CSTR func = "reset_a_iparameter_binding";
-
-	mylog("%s: entering ... self=%p, parameters_allocated=%d, ipar=%d\n", func, self, self->allocated, ipar);
+	MYLOG(0, "entering ... self=%p, parameters_allocated=%d, ipar=%d\n", self, self->allocated, ipar);
 
 	if (ipar < 1 || ipar > self->allocated)
 		return;
@@ -646,8 +641,7 @@ CountParameters(const StatementClass *self, Int2 *inputCount, Int2 *ioCount, Int
 void
 APD_free_params(APDFields *apdopts, char option)
 {
-	CSTR	func = "APD_free_params";
-	mylog("%s:  ENTER, self=%p\n", func, apdopts);
+	MYLOG(0, "entering self=%p\n", apdopts);
 
 	if (!apdopts->parameters)
 		return;
@@ -659,16 +653,15 @@ APD_free_params(APDFields *apdopts, char option)
 		apdopts->allocated = 0;
 	}
 
-	mylog("%s:  EXIT\n", func);
+	MYLOG(0, "leaving\n");
 }
 
 void
 PDATA_free_params(PutDataInfo *pdata, char option)
 {
-	CSTR	func = "PDATA_free_params";
 	int			i;
 
-	mylog("%s:  ENTER, self=%p\n", func, pdata);
+	MYLOG(0, "entering self=%p\n", pdata);
 
 	if (!pdata->pdata)
 		return;
@@ -694,7 +687,7 @@ PDATA_free_params(PutDataInfo *pdata, char option)
 		pdata->allocated = 0;
 	}
 
-	mylog("%s:  EXIT\n", func);
+	MYLOG(0, "leaving\n");
 }
 
 /*
@@ -703,9 +696,7 @@ PDATA_free_params(PutDataInfo *pdata, char option)
 void
 IPD_free_params(IPDFields *ipdopts, char option)
 {
-	CSTR	func = "IPD_free_params";
-
-	mylog("%s:  ENTER, self=%p\n", func, ipdopts);
+	MYLOG(0, "entering self=%p\n", ipdopts);
 
 	if (!ipdopts->parameters)
 		return;
@@ -716,17 +707,16 @@ IPD_free_params(IPDFields *ipdopts, char option)
 		ipdopts->allocated = 0;
 	}
 
-	mylog("%s:  EXIT\n", func);
+	MYLOG(0, "leaving\n");
 }
 
 void
 extend_column_bindings(ARDFields *self, int num_columns)
 {
-	CSTR func = "extend_column_bindings";
 	BindInfoClass *new_bindings;
 	int			i;
 
-	mylog("%s: entering ... self=%p, bindings_allocated=%d, num_columns=%d\n", func, self, self->allocated, num_columns);
+	MYLOG(0, "entering ... self=%p, bindings_allocated=%d, num_columns=%d\n", self, self->allocated, num_columns);
 
 	/*
 	 * if we have too few, allocate room for more, and copy the old
@@ -737,7 +727,7 @@ extend_column_bindings(ARDFields *self, int num_columns)
 		new_bindings = create_empty_bindings(num_columns);
 		if (!new_bindings)
 		{
-			mylog("%s: unable to create %d new bindings from %d old bindings\n", func, num_columns, self->allocated);
+			MYLOG(0, "unable to create %d new bindings from %d old bindings\n", num_columns, self->allocated);
 
 			if (self->bindings)
 			{
@@ -770,16 +760,15 @@ extend_column_bindings(ARDFields *self, int num_columns)
 	/* SQLExecDirect(...)  # returns 5 cols */
 	/* SQLExecDirect(...)  # returns 10 cols  (now OK) */
 
-	mylog("exit %s=%p\n", func, self->bindings);
+	MYLOG(0, "leaving %p\n", self->bindings);
 }
 
 void
 reset_a_column_binding(ARDFields *self, int icol)
 {
-	CSTR func = "reset_a_column_binding";
 	BindInfoClass	*bookmark;
 
-	mylog("%s: entering ... self=%p, bindings_allocated=%d, icol=%d\n", func, self, self->allocated, icol);
+	MYLOG(0, "entering ... self=%p, bindings_allocated=%d, icol=%d\n", self, self->allocated, icol);
 
 	if (icol > self->allocated)
 		return;
@@ -811,7 +800,7 @@ void	ARD_unbind_cols(ARDFields *self, BOOL freeall)
 {
 	Int2	lf;
 
-inolog("ARD_unbind_cols freeall=%d allocated=%d bindings=%p", freeall, self->allocated, self->bindings);
+MYLOG(DETAIL_LOG_LEVEL, "freeall=%d allocated=%d bindings=%p\n", freeall, self->allocated, self->bindings);
 	for (lf = 1; lf <= self->allocated; lf++)
 		reset_a_column_binding(self, lf);
 	if (freeall)
@@ -826,7 +815,7 @@ void	GDATA_unbind_cols(GetDataInfo *self, BOOL freeall)
 {
 	Int2	lf;
 
-inolog("GDATA_unbind_cols freeall=%d allocated=%d gdata=%p", freeall, self->allocated, self->gdata);
+MYLOG(DETAIL_LOG_LEVEL, "freeall=%d allocated=%d gdata=%p\n", freeall, self->allocated, self->gdata);
 	if (self->fdata.ttlbuf)
 	{
 		free(self->fdata.ttlbuf);
@@ -875,10 +864,9 @@ create_empty_gdata(int num_columns)
 void
 extend_getdata_info(GetDataInfo *self, int num_columns, BOOL shrink)
 {
-	CSTR func = "extend_getdata_info";
 	GetDataClass	*new_gdata;
 
-	mylog("%s: entering ... self=%p, gdata_allocated=%d, num_columns=%d\n", func, self, self->allocated, num_columns);
+	MYLOG(0, "entering ... self=%p, gdata_allocated=%d, num_columns=%d\n", self, self->allocated, num_columns);
 
 	/*
 	 * if we have too few, allocate room for more, and copy the old
@@ -889,7 +877,7 @@ extend_getdata_info(GetDataInfo *self, int num_columns, BOOL shrink)
 		new_gdata = create_empty_gdata(num_columns);
 		if (!new_gdata)
 		{
-			mylog("%s: unable to create %d new gdata from %d old gdata\n", func, num_columns, self->allocated);
+			MYLOG(0, "unable to create %d new gdata from %d old gdata\n", num_columns, self->allocated);
 
 			if (self->gdata)
 			{
@@ -930,7 +918,7 @@ extend_getdata_info(GetDataInfo *self, int num_columns, BOOL shrink)
 	 * about it by unbinding those columns.
 	 */
 
-	mylog("exit extend_gdata_info=%p\n", self->gdata);
+	MYLOG(0, "leaving %p\n", self->gdata);
 }
 void	reset_a_getdata_info(GetDataInfo *gdata_info, int icol)
 {
@@ -955,10 +943,9 @@ void PutDataInfoInitialize(PutDataInfo *pdata_info)
 void
 extend_putdata_info(PutDataInfo *self, int num_params, BOOL shrink)
 {
-	CSTR func = "extend_putdata_info";
 	PutDataClass	*new_pdata;
 
-	mylog("%s: entering ... self=%p, parameters_allocated=%d, num_params=%d\n", func, self, self->allocated, num_params);
+	MYLOG(0, "entering ... self=%p, parameters_allocated=%d, num_params=%d\n", self, self->allocated, num_params);
 
 	/*
 	 * if we have too few, allocate room for more, and copy the old
@@ -968,13 +955,13 @@ extend_putdata_info(PutDataInfo *self, int num_params, BOOL shrink)
 	{
 		if (self->allocated <= 0 && self->pdata)
 		{
-			mylog("??? pdata is not null while allocated == 0\n");
+			MYLOG(0, "??? pdata is not null while allocated == 0\n");
 			self->pdata = NULL;
 		}
 		new_pdata = (PutDataClass *) realloc(self->pdata, sizeof(PutDataClass) * num_params);
 		if (!new_pdata)
 		{
-			mylog("%s: unable to create %d new pdata from %d old pdata\n", func, num_params, self->allocated);
+			MYLOG(0, "unable to create %d new pdata from %d old pdata\n", num_params, self->allocated);
 
 			self->pdata = NULL;
 			self->allocated = 0;
@@ -1000,7 +987,7 @@ extend_putdata_info(PutDataInfo *self, int num_params, BOOL shrink)
 		}
 	}
 
-	mylog("exit %s=%p\n", func, self->pdata);
+	MYLOG(0, "leaving %p\n", self->pdata);
 }
 void	reset_a_putdata_info(PutDataInfo *pdata_info, int ipar)
 {

@@ -19,6 +19,7 @@
 #define ENCRYPT_TEXT_TEST 1
 #define ENCRYPT_NUMERIC_TEST 2
 #define ENCRYPT_TIMESTAMP_TEST 3
+#define ENCRYPT_INTEGER_TEST 4
 
 /* kind of data test */
 #define BASIC_DATA 0

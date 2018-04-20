@@ -60,6 +60,7 @@ CSTR	psqlodbc = "psqlodbc35w";
 CSTR	psqlodbc = "psqlodbc30a";
 #endif
 
+
 BOOL		WINAPI
 DllMain(HANDLE hInst, ULONG ul_reason_for_call, LPVOID lpReserved)
 {
@@ -69,12 +70,10 @@ DllMain(HANDLE hInst, ULONG ul_reason_for_call, LPVOID lpReserved)
 	{
 		case DLL_PROCESS_ATTACH:
 			s_hModule = hInst;	/* Save for dialog boxes */
-
-			if (initialize_global_cs() == 0)
-				; // getCommonDefaults(DBMS_NAME, ODBCINST_INI, NULL);
+			initialize_global_cs();
 #ifdef	PG_BIN
 			if (s_hLModule = LoadLibraryEx(PG_BIN "\\libpq.dll", NULL, LOAD_WITH_ALTERED_SEARCH_PATH), s_hLModule == NULL)
-				mylog("libpq in the folder %s couldn't be loaded\n", PG_BIN);
+				MYLOG(0, "libpq in the folder %s couldn't be loaded\n", PG_BIN);
 #endif /* PG_BIN */
 			if (NULL == s_hLModule)
 			{
@@ -89,7 +88,7 @@ DllMain(HANDLE hInst, ULONG ul_reason_for_call, LPVOID lpReserved)
 					SPRINTF_FIXED(dllPath, "%s%slibpq.dll", drive, dir);
 					if (s_hLModule = LoadLibraryEx(dllPath, NULL, LOAD_WITH_ALTERED_SEARCH_PATH), s_hLModule == NULL)
 					{
-						mylog("libpq in the folder %s%s couldn't be loaded\n", drive, dir);
+						MYLOG(0, "libpq in the folder %s%s couldn't be loaded\n", drive, dir);
 						SPRINTF_FIXED(message, "libpq in neither %s nor %s%s could be loaded", PG_BIN, drive, dir);
 					}
 				}
@@ -113,16 +112,16 @@ DllMain(HANDLE hInst, ULONG ul_reason_for_call, LPVOID lpReserved)
 			break;
 
 		case DLL_PROCESS_DETACH:
-			mylog("DETACHING psqlsetup\n");
+			MYLOG(0, "DETACHING psqlsetup\n");
 			CleanupDelayLoadedDLLs();
 			if (NULL != s_hLModule)
 			{
-				mylog("Freeing Library libpq\n");
+				MYLOG(0, "Freeing Library libpq\n");
 				FreeLibrary(s_hLModule);
 			}
 			if (NULL != s_hLModule2)
 			{
-				mylog("Freeing Library %s\n", psqlodbc);
+				MYLOG(0, "Freeing Library %s\n", psqlodbc);
 				FreeLibrary(s_hLModule2);
 			}
 			finalize_global_cs();

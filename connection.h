@@ -10,13 +10,14 @@
 #define __CONNECTION_H__
 
 #include "psqlodbc.h"
+#include <libpq-fe.h>
+#include "pqexpbuffer.h"
+
 #include <time.h>
 
 #include <stdlib.h>
 #include <string.h>
 #include "descriptor.h"
-
-#include <libpq-fe.h>
 
 #if defined (POSIX_MULTITHREAD_SUPPORT)
 #include <pthread.h>
@@ -428,7 +429,7 @@ void		CC_initialize_pg_version(ConnectionClass *conn);
 void		CC_log_error(const char *func, const char *desc, const ConnectionClass *self);
 int			CC_send_cancel_request(const ConnectionClass *conn);
 void		CC_on_commit(ConnectionClass *conn);
-void		CC_on_abort(ConnectionClass *conn, UDWORD opt);
+void		CC_on_abort(ConnectionClass *conn, unsigned int opt);
 void		CC_on_abort_partial(ConnectionClass *conn);
 void		ProcessRollback(ConnectionClass *conn, BOOL undo, BOOL partial);
 const char	*CC_get_current_schema(ConnectionClass *conn);
@@ -437,17 +438,29 @@ int             CC_discard_marked_objects(ConnectionClass *conn);
 
 int		CC_get_max_idlen(ConnectionClass *self);
 char	CC_get_escape(const ConnectionClass *self);
+char *		identifierEscape(const SQLCHAR *src, SQLLEN srclen, const ConnectionClass *conn, char *buf, size_t bufsize, BOOL double_quote);
+int		findIdentifier(const UCHAR *str, int ccsc, const UCHAR **next_token);
+int		eatTableIdentifiers(const UCHAR *str, int ccsc, pgNAME *table, pgNAME *schema);
+
 
 const		char *CurrCat(const ConnectionClass *self);
 const		char *CurrCatString(const ConnectionClass *self);
 SQLUINTEGER	CC_get_isolation(ConnectionClass *self);
 
 SQLCHAR	*make_lstring_ifneeded(ConnectionClass *, const SQLCHAR *s, ssize_t len, BOOL);
+
+#define	TABLE_IS_VALID(tbname, tblen)	((tbname) && (tblen > 0 || SQL_NTS == tblen))
+int	schema_str(char *buf, int buflen, const SQLCHAR *s, SQLLEN len, BOOL table_is_valid, ConnectionClass *conn);
 char	*schema_strcat(char *buf, int buflen, const char *fmt, const SQLCHAR *s, SQLLEN len,
-		const SQLCHAR *, SQLLEN, ConnectionClass *conn);
+		BOOL table_is_valid, ConnectionClass *conn);
 char	*schema_strcat1(char *buf, int buflen, const char *fmt, const char *s1,
 				const char *s,
 				const SQLCHAR *, int, ConnectionClass *conn);
+
+void	schema_appendPQExpBuffer(PQExpBufferData *buf, const char *fmt, const SQLCHAR *s, SQLLEN len,
+		BOOL table_is_valid, ConnectionClass *conn);
+void	schema_appendPQExpBuffer1(PQExpBufferData *buf, const char *fmt, const char *s1, const char *s,
+				BOOL table_is_valid, ConnectionClass *conn);
 
 void	CC_examine_global_transaction(ConnectionClass *self);
 

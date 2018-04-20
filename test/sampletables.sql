@@ -4,7 +4,7 @@
 -- it one line at a time. Hence each statement must be on a single line.
 
 SELECT cipher_key_disable_log();
-SELECT cipher_key_regist('','aofiafoaeiaofijabeoptuiotaoi','aes',null);
+SELECT cipher_key_regist('','aofiafoaeiaofijabeoptuiotaoi','aes',null,2);
 SELECT pgtde_begin_session('aofiafoaeiaofijabeoptuiotaoi');
 SELECT cipher_key_enable_log();
 

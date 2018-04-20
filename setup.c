@@ -117,7 +117,11 @@ ConfigDSN(HWND hwnd,
 				(LPARAM) lpsetupdlg));
 		}
 		else if (lpsetupdlg->ci.dsn[0])
+		{
+			MYLOG(0, "about to getCiAllDefaults\n");
+			getCiAllDefaults(&lpsetupdlg->ci);
 			fSuccess = SetDSNAttributes(hwnd, lpsetupdlg, NULL);
+		}
 		else
 			fSuccess = FALSE;
 	}
@@ -463,7 +467,7 @@ test_connection(HANDLE hwnd, ConnInfo *ci, BOOL withDTC)
 	dsn_1st = ci->dsn[0];
 	ci->dsn[0] = '\0';
 	makeConnectString(out_conn, ci, sizeof(out_conn));
-mylog("conn_string=%s\n", out_conn);
+MYLOG(0, "conn_string=%s\n", out_conn);
 #ifdef	UNICODE_SUPPORT
 	MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, out_conn, -1, wout_conn, sizeof(wout_conn) / sizeof(wout_conn[0]));
 	conn_str = wout_conn;
@@ -607,7 +611,7 @@ ParseAttributes(LPCSTR lpszAttributes, LPSETUPDLG lpsetupdlg)
 		/* lpsetupdlg->aAttr[iElement].fSupplied = TRUE; */
 		memcpy(value, lpszStart, MIN(lpsz - lpszStart + 1, MAXPGPATH));
 
-		mylog("aszKey='%s', value='%s'\n", aszKey, value);
+		MYLOG(0, "aszKey='%s', value='%s'\n", aszKey, value);
 
 		/* Copy the appropriate value to the conninfo  */
 		copyConnAttributes(&lpsetupdlg->ci, aszKey, value);

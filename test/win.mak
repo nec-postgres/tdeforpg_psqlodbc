@@ -9,11 +9,11 @@
 # Comments:             Created by Michael Paquier, 2014-05-21
 #
 
-
+ORIGDIR=.
 # Include the list of tests
 !INCLUDE tests
 
-SRCDIR=src
+SRCDIR=$(ORIGDIR)\src
 OBJDIR=exe
 EXEDIR=exe
 
@@ -36,7 +36,7 @@ COMOBJ = $(OBJDIR)\common.obj
 
 # Flags
 CLFLAGS=/W3 /D WIN32 /D _CRT_SECURE_NO_DEPRECATE
-LINKFLAGS=/link odbc32.lib odbccp32.lib
+LINKFLAGS=/link odbc32.lib odbccp32.lib /MANIFEST:EMBED
 
 # Build an executable for each test.
 #
@@ -59,11 +59,11 @@ $(OBJDIR) :
 !ENDIF
 
 
-runsuite.exe: runsuite.c
-	cl runsuite.c $(CLFLAGS) $(LINKFLAGS)
+runsuite.exe: $(ORIGDIR)\runsuite.c
+	$(CC) $** $(CLFLAGS) $(LINKFLAGS)
 
-reset-db.exe: reset-db.c
-	cl reset-db.c $(CLFLAGS) $(LINKFLAGS)
+reset-db.exe: $(ORIGDIR)\reset-db.c $(COMOBJ)
+	$(CC) $** $(CLFLAGS) $(LINKFLAGS)
 
 # activate the above inference rule
 .SUFFIXES: .out
@@ -72,11 +72,11 @@ reset-db.exe: reset-db.c
 RESDIR=results
 installcheck: runsuite.exe $(TESTEXES) reset-db.exe
 	del regression.diffs
-	.\reset-db < sampletables.sql
+	.\reset-db < $(ORIGDIR)\sampletables.sql
 !IF !EXIST($(RESDIR))
 	mkdir $(RESDIR)
 !ENDIF
-	.\runsuite $(TESTS)
+        .\runsuite $(TESTS) --inputdir=$(ORIGDIR)
 
 clean:
 	-del $(EXEDIR)\*.exe

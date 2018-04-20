@@ -26,12 +26,12 @@
 
 #define	EXPERIMENTAL_CURRENTLY
 
-
 /* TDEforPG data type */
 OID PG_TYPE_ENCRYPT_TEXT = 0;
 OID PG_TYPE_ENCRYPT_BYTEA = 0;
 OID PG_TYPE_ENCRYPT_NUMERIC = 0;
 OID PG_TYPE_ENCRYPT_TIMESTAMP = 0;
+OID PG_TYPE_ENCRYPT_INTEGER = 0;
 
 SQLSMALLINT ansi_to_wtype(const ConnectionClass *self, SQLSMALLINT ansitype)
 {
@@ -178,7 +178,7 @@ pg_true_type(const ConnectionClass *conn, OID type, OID basetype)
 static SQLSMALLINT
 get_interval_type(Int4 atttypmod, const char **name)
 {
-mylog("!!! %s atttypmod=%x\n", __FUNCTION__, atttypmod);
+MYLOG(0, "entering atttypmod=%x\n", atttypmod);
 	if ((-1) == atttypmod)
 		return 0;
 	if (0 != (YEAR_BIT & atttypmod))
@@ -271,7 +271,7 @@ getCharColumnSizeX(const ConnectionClass *conn, OID type, int atttypmod, int adt
 	int		p = -1, maxsize;
 	const ConnInfo	*ci = &(conn->connInfo);
 
-	mylog("%s: type=%d, atttypmod=%d, adtsize_or=%d, unknown = %d\n", __FUNCTION__, type, atttypmod, adtsize_or_longestlen, handle_unknown_size_as);
+	MYLOG(0, "entering type=%d, atttypmod=%d, adtsize_or=%d, unknown = %d\n", type, atttypmod, adtsize_or_longestlen, handle_unknown_size_as);
 
 	/* Assign Maximum size based on parameters */
 	switch (type)
@@ -309,20 +309,20 @@ getCharColumnSizeX(const ConnectionClass *conn, OID type, int atttypmod, int adt
 	 * Static ColumnSize (i.e., the Maximum ColumnSize of the datatype) This
 	 * has nothing to do with a result set.
 	 */
-inolog("!!! atttypmod  < 0 ?\n");
+MYLOG(DETAIL_LOG_LEVEL, "!!! atttypmod  < 0 ?\n");
 	if (atttypmod < 0 && adtsize_or_longestlen < 0)
 		return maxsize;
 
-inolog("!!! adtsize_or_logngest=%d\n", adtsize_or_longestlen);
+MYLOG(DETAIL_LOG_LEVEL, "!!! adtsize_or_logngest=%d\n", adtsize_or_longestlen);
 	p = adtsize_or_longestlen; /* longest */
 	/*
 	 * Catalog Result Sets -- use assigned column width (i.e., from
 	 * set_tuplefield_string)
 	 */
-inolog("!!! catalog_result=%d\n", handle_unknown_size_as);
+MYLOG(DETAIL_LOG_LEVEL, "!!! catalog_result=%d\n", handle_unknown_size_as);
 	if (UNKNOWNS_AS_LONGEST == handle_unknown_size_as)
 	{
-		mylog("%s: LONGEST: p = %d\n", __FUNCTION__, p);
+		MYLOG(0, "LONGEST: p = %d\n", p);
 		if (p > 0 &&
 		    (atttypmod < 0 || atttypmod > p))
 			return p;
@@ -376,7 +376,7 @@ getNumericDecimalDigitsX(const ConnectionClass *conn, OID type, int atttypmod, i
 {
 	Int4		default_decimal_digits = 6;
 
-	mylog("%s: type=%d, atttypmod=%d\n", __FUNCTION__, type, atttypmod);
+	MYLOG(0, "entering type=%d, atttypmod=%d\n", type, atttypmod);
 
 	if (atttypmod < 0 && adtsize_or_longest < 0)
 		return default_decimal_digits;
@@ -394,7 +394,7 @@ getNumericColumnSizeX(const ConnectionClass *conn, OID type, int atttypmod, int 
 {
 	Int4	default_column_size = 28;
 
-	mylog("%s: type=%d, typmod=%d\n", __FUNCTION__, type, atttypmod);
+	MYLOG(0, "entering type=%d, typmod=%d\n", type, atttypmod);
 
 	if (atttypmod > -1)
 		return (atttypmod >> 16) & 0xffff;
@@ -420,7 +420,7 @@ getNumericColumnSizeX(const ConnectionClass *conn, OID type, int atttypmod, int 
 static SQLSMALLINT
 getTimestampDecimalDigitsX(const ConnectionClass *conn, OID type, int atttypmod)
 {
-	mylog("%s: type=%d, atttypmod=%d\n", __FUNCTION__, type, atttypmod);
+	MYLOG(0, "type=%d, atttypmod=%d\n", type, atttypmod);
 	return (atttypmod > -1 ? atttypmod : 6);
 }
 
@@ -429,7 +429,7 @@ getTimestampColumnSizeX(const ConnectionClass *conn, OID type, int atttypmod)
 {
 	Int4	fixed, scale;
 
-	mylog("%s: type=%d, atttypmod=%d\n", __FUNCTION__, type, atttypmod);
+	MYLOG(0, "entering type=%d, atttypmod=%d\n", type, atttypmod);
 
 	switch (type)
 	{
@@ -458,7 +458,7 @@ getIntervalDecimalDigits(OID type, int atttypmod)
 {
 	Int4	prec;
 
-	mylog("%s: type=%d, atttypmod=%d\n", __FUNCTION__, type, atttypmod);
+	MYLOG(0, "entering type=%d, atttypmod=%d\n", type, atttypmod);
 
 	if ((atttypmod & SECOND_BIT) == 0)
 		return 0;
@@ -470,7 +470,7 @@ getIntervalColumnSize(OID type, int atttypmod)
 {
 	Int4	ttl, leading_precision = 9, scale;
 
-	mylog("%s: type=%d, atttypmod=%d\n", __FUNCTION__, type, atttypmod);
+	MYLOG(0, "entering type=%d, atttypmod=%d\n", type, atttypmod);
 
 	ttl = leading_precision;
 	switch (get_interval_type(atttypmod, NULL))
@@ -800,7 +800,7 @@ pgtype_attr_to_name(const ConnectionClass *conn, OID type, int atttypmod, BOOL a
 		case PG_TYPE_XID:
 			return "xid";
 		case PG_TYPE_INT4:
-inolog("pgtype_to_name int4\n");
+MYLOG(DETAIL_LOG_LEVEL, "pgtype_to_name int4\n");
 			return auto_increment ? "serial" : "int4";
 		case PG_TYPE_FLOAT4:
 			return "float4";
@@ -2120,28 +2120,33 @@ OID tdeforpgtype_to_pgtype(const char *func, OID pgtype){
 	if ((PG_TYPE_ENCRYPT_TEXT !=0) && (PG_TYPE_ENCRYPT_TEXT == ret))
 	{
 		ret = PG_TYPE_TEXT;
-		mylog("%s: replaced PG_TYPE_ENCRYPT_TEXT to PG_TYPE_TEXT\n",func);
+		MYLOG(0,"%s: replaced PG_TYPE_ENCRYPT_TEXT to PG_TYPE_TEXT\n",func);
 	}
 	else if ((PG_TYPE_ENCRYPT_BYTEA !=0) && (PG_TYPE_ENCRYPT_BYTEA == ret))
 	{
 		ret = PG_TYPE_BYTEA;
-		mylog("%s: replaced PG_TYPE_ENCRYPT_BYTEA to PG_TYPE_BYTEA\n",func);
+		MYLOG(0,"%s: replaced PG_TYPE_ENCRYPT_BYTEA to PG_TYPE_BYTEA\n",func);
 
 	}
 	else if ((PG_TYPE_ENCRYPT_NUMERIC !=0) && (PG_TYPE_ENCRYPT_NUMERIC == ret))
 	{
 		ret = PG_TYPE_NUMERIC;
-		mylog("%s: replaced PG_TYPE_ENCRYPT_NUMERIC to PG_TYPE_NUMERIC\n",func);
+		MYLOG(0,"%s: replaced PG_TYPE_ENCRYPT_NUMERIC to PG_TYPE_NUMERIC\n",func);
 
 	}
 	else if ((PG_TYPE_ENCRYPT_TIMESTAMP !=0) && (PG_TYPE_ENCRYPT_TIMESTAMP == ret))
 	{
 		ret = PG_TYPE_TIMESTAMP;
-		mylog("%s: replaced PG_TYPE_ENCRYPT_TIMESTAMP to PG_TYPE_TIMESTAMP\n",func);
+		MYLOG(0,"%s: replaced PG_TYPE_ENCRYPT_TIMESTAMP to PG_TYPE_TIMESTAMP\n",func);
+	}
+	else if ((PG_TYPE_ENCRYPT_INTEGER !=0) && (PG_TYPE_ENCRYPT_INTEGER == ret))
+	{
+		ret = PG_TYPE_INT8;
+		MYLOG(0,"%s: replaced PG_TYPE_ENCRYPT_INTEGER to PG_TYPE_INT8\n",func);
 	}
 	else
 	{
-		mylog("%s: not TDEforPG data type\n",func);
+		MYLOG(0,"%s: not TDEforPG data type\n",func);
 	}
 	
 	return ret;

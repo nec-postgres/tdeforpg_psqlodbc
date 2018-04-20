@@ -1,6 +1,6 @@
 
   Portions Copyright (C) 1998          Insight Distribution Systems
-  Portions Copyright (C) 1998 - 2017   The PostgreSQL Global Development Group
+  Portions Copyright (C) 1998 - 2018   The PostgreSQL Global Development Group
   Portions Copyright (C) 2018          NEC Corporation
 
   Multibyte support was added by Sankyo Unyu Service, (C) 2001.

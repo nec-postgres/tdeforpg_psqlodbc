@@ -26,6 +26,8 @@
 
 #ifdef WIN32
 #include "loadlib.h"
+#else
+#include <libgen.h>
 #endif
 
 static int	exepgm = 0;
@@ -110,35 +112,29 @@ HINSTANCE s_hModule;		/* Saved module handle. */
 BOOL		WINAPI
 DllMain(HANDLE hInst, ULONG ul_reason_for_call, LPVOID lpReserved)
 {
+	const char *exename = GetExeProgramName();
+
 	switch (ul_reason_for_call)
 	{
 		case DLL_PROCESS_ATTACH:
 			s_hModule = hInst;	/* Save for dialog boxes */
 
-			if (initialize_global_cs() == 0)
-			{
-				char	pathname[_MAX_PATH], fname[_MAX_FNAME];
-				int platformId = 0;
 
-				if (GetModuleFileName(NULL, pathname, sizeof(pathname)) > 0)
-				{
-					_splitpath(pathname, NULL, NULL, fname, NULL);
-					if (stricmp(fname, "msaccess") == 0)
-						exepgm = 1;
-					else if (strnicmp(fname, "msqry", 5) == 0)
-						exepgm = 2;
-					else if (strnicmp(fname, "sqlservr", 8) == 0)
-						exepgm = 3;
-				}
-				mylog("exe name=%s\n", fname);
-			}
+			if (stricmp(exename, "msaccess") == 0)
+				exepgm = 1;
+			else if (strnicmp(exename, "msqry", 5) == 0)
+				exepgm = 2;
+			else if (strnicmp(exename, "sqlservr", 8) == 0)
+				exepgm = 3;
+			initialize_global_cs();
+			MYLOG(0, "exe name=%s\n", exename);
 			break;
 
 		case DLL_THREAD_ATTACH:
 			break;
 
 		case DLL_PROCESS_DETACH:
-			mylog("DETACHING %s\n", DRIVER_FILE_NAME);
+			MYLOG(0, "DETACHING %s\n", DRIVER_FILE_NAME);
 			CleanupDelayLoadedDLLs();
 			/* my(q)log is unavailable from here */
 			finalize_global_cs();
@@ -167,7 +163,6 @@ __attribute__((constructor))
 psqlodbc_init(void)
 {
 	initialize_global_cs();
-	// getCommonDefaults(DBMS_NAME, ODBCINST_INI, NULL);
 }
 
 static void
@@ -183,8 +178,8 @@ psqlodbc_fini(void)
 BOOL
 _init(void)
 {
+	getExeName();
 	initialize_global_cs();
-	// getCommonDefaults(DBMS_NAME, ODBCINST_INI, NULL);
 	return TRUE;
 }
 

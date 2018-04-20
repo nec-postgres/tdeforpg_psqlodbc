@@ -148,7 +148,7 @@ driver_optionsDraw(HWND hdlg, const ConnInfo *ci, int src, BOOL enable)
 	const char * drivername = NULL;
 	GLOBAL_VALUES defval;
 
-mylog("!!!! %s;%d in\n", __FUNCTION__, src);
+MYLOG(0, "entering src=%d\n", src);
 	init_globals(&defval);
 	switch (src)
 	{
@@ -166,7 +166,11 @@ mylog("!!!! %s;%d in\n", __FUNCTION__, src);
 	}
 
 	ShowWindow(GetDlgItem(hdlg, DRV_MSG_LABEL2), enable ? SW_SHOW : SW_HIDE);
+
 	CheckDlgButton(hdlg, DRV_COMMLOG, comval->commlog > 0);
+	SetDlgItemInt(hdlg, DS_COMMLOG, comval->commlog, FALSE);
+	ShowWindow(GetDlgItem(hdlg, DS_COMMLOG), comval->commlog > 0 ? SW_SHOW : SW_HIDE);
+
 	CheckDlgButton(hdlg, DRV_UNIQUEINDEX, comval->unique_index);
 	/* EnableWindow(GetDlgItem(hdlg, DRV_UNIQUEINDEX), enable); */
 	EnableWindow(GetDlgItem(hdlg, DRV_READONLY), FALSE);
@@ -195,7 +199,11 @@ mylog("!!!! %s;%d in\n", __FUNCTION__, src);
 	CheckDlgButton(hdlg, DRV_UNKNOWNS_LONGVARCHAR, comval->unknowns_as_longvarchar);
 	CheckDlgButton(hdlg, DRV_BOOLS_CHAR, comval->bools_as_char);
 	CheckDlgButton(hdlg, DRV_PARSE, comval->parse);
+
 	CheckDlgButton(hdlg, DRV_DEBUG, comval->debug > 0);
+	SetDlgItemInt(hdlg, DS_DEBUG, comval->debug, FALSE);
+	ShowWindow(GetDlgItem(hdlg, DS_DEBUG), comval->debug > 0 ? SW_SHOW : SW_HIDE);
+
 	SetDlgItemInt(hdlg, DRV_CACHE_SIZE, comval->fetch_max, FALSE);
 	SetDlgItemInt(hdlg, DRV_VARCHAR_SIZE, comval->max_varchar_size, FALSE);
 	SetDlgItemInt(hdlg, DRV_LONGVARCHAR_SIZE, comval->max_longvarchar_size, TRUE);
@@ -210,15 +218,18 @@ mylog("!!!! %s;%d in\n", __FUNCTION__, src);
 	return 0;
 }
 
+#define	INIT_DISP_LOGVAL	2
+
 static int
 driver_options_update(HWND hdlg, ConnInfo *ci)
 {
 	GLOBAL_VALUES *comval;
+	BOOL	bTranslated;
 
-// mylog("!!!! %s in\n", __FUNCTION__);
+MYLOG(3, "entering\n");
 	comval = &(ci->drivers);
 
-	comval->commlog = IsDlgButtonChecked(hdlg, DRV_COMMLOG);
+	(comval->commlog = GetDlgItemInt(hdlg, DS_COMMLOG, &bTranslated, FALSE)) || bTranslated || (comval->commlog = INIT_DISP_LOGVAL);
 	comval->unique_index = IsDlgButtonChecked(hdlg, DRV_UNIQUEINDEX);
 	comval->use_declarefetch = IsDlgButtonChecked(hdlg, DRV_USEDECLAREFETCH);
 
@@ -238,7 +249,7 @@ driver_options_update(HWND hdlg, ConnInfo *ci)
 
 	comval->parse = IsDlgButtonChecked(hdlg, DRV_PARSE);
 
-	comval->debug = IsDlgButtonChecked(hdlg, DRV_DEBUG);
+	(comval->debug = GetDlgItemInt(hdlg, DS_DEBUG, &bTranslated, FALSE)) || bTranslated || (comval->debug = INIT_DISP_LOGVAL);
 
 	comval->fetch_max = GetDlgItemInt(hdlg, DRV_CACHE_SIZE, NULL, FALSE);
 	comval->max_varchar_size = GetDlgItemInt(hdlg, DRV_VARCHAR_SIZE, NULL, FALSE);
@@ -261,7 +272,7 @@ HMODULE DtcProc(const char *procname, FARPROC *proc)
 	*proc = NULL;
 	if (hmodule = LoadLibraryEx(GetXaLibPath(), NULL, LOAD_WITH_ALTERED_SEARCH_PATH), NULL != hmodule)
 	{
-mylog("GetProcAddres for %s\n", procname);
+MYLOG(0, "GetProcAddres for %s\n", procname);
 		*proc = GetProcAddress(hmodule, procname);
 	}
 
@@ -306,7 +317,7 @@ global_optionsProc(HWND hdlg,
 	GLOBAL_VALUES	defval;
 
 // if (WM_INITDIALOG == wMsg || WM_COMMAND == wMsg)
-// mylog("!!!! %s:%d in\n", __FUNCTION__, wMsg);
+// MYLOG(0, "entering wMsg=%d\n", wMsg);
 	init_globals(&defval);
 	switch (wMsg)
 	{
@@ -370,6 +381,31 @@ global_optionsProc(HWND hdlg,
 	return FALSE;
 }
 
+static void
+CtrlCheckButton(HWND hdlg, int nIDcheck, int nIDint)
+{
+	BOOL	bTranslated;
+
+	switch (Button_GetCheck(GetDlgItem(hdlg, nIDcheck)))
+	{
+		case BST_CHECKED:
+			if (!GetDlgItemInt(hdlg, nIDint, &bTranslated, FALSE))
+			{
+				ShowWindow(GetDlgItem(hdlg, nIDint), SW_SHOW);
+				if (bTranslated)
+					SetDlgItemInt(hdlg, nIDint, INIT_DISP_LOGVAL, FALSE);
+			}
+			break;
+		case BST_UNCHECKED:
+			if (GetDlgItemInt(hdlg, nIDint, &bTranslated, FALSE))
+			{
+				ShowWindow(GetDlgItem(hdlg, nIDint), SW_HIDE);
+				SetDlgItemInt(hdlg, nIDint, 0, FALSE);
+			}
+			break;
+	}
+}
+
 LRESULT			CALLBACK
 ds_options1Proc(HWND hdlg,
 				   UINT wMsg,
@@ -380,7 +416,7 @@ ds_options1Proc(HWND hdlg,
 	char	strbuf[128];
 
 // if (WM_INITDIALOG == wMsg || WM_COMMAND == wMsg)
-// mylog("!!!! %s:%d in\n", __FUNCTION__, wMsg);
+// MYLOG(0, "entering wMsg=%d in\n", wMsg);
 	switch (wMsg)
 	{
 		case WM_INITDIALOG:
@@ -443,6 +479,14 @@ ds_options1Proc(HWND hdlg,
 								   MAKEINTRESOURCE(DLG_OPTIONS_DS3),
 								   hdlg, ds_options3Proc, (LPARAM) ci);
 					break;
+				case DRV_COMMLOG:
+				case DS_COMMLOG:
+					CtrlCheckButton(hdlg, DRV_COMMLOG, DS_COMMLOG);
+					break;
+				case DRV_DEBUG:
+				case DS_DEBUG:
+					CtrlCheckButton(hdlg, DRV_DEBUG, DS_DEBUG);
+					break;
 			}
 	}
 
@@ -454,7 +498,7 @@ ds_options_update(HWND hdlg, ConnInfo *ci)
 {
 	char		buf[128];
 
-	mylog("%s: got ci = %p\n", __FUNCTION__, ci);
+	MYLOG(0, "entering got ci=%p\n", ci);
 
 	/* Readonly */
 	ITOA_FIXED(ci->onlyread, IsDlgButtonChecked(hdlg, DS_READONLY));
@@ -495,7 +539,6 @@ ds_options_update(HWND hdlg, ConnInfo *ci)
 	ci->use_server_side_prepare = IsDlgButtonChecked(hdlg, DS_SERVERSIDEPREPARE);
 	ci->bytea_as_longvarbinary = IsDlgButtonChecked(hdlg, DS_BYTEAASLONGVARBINARY);
 	/*ci->lower_case_identifier = IsDlgButtonChecked(hdlg, DS_LOWERCASEIDENTIFIER);*/
-	ci->gssauth_use_gssapi = IsDlgButtonChecked(hdlg, DS_GSSAUTHUSEGSSAPI);
 
 	/* OID Options */
 	ITOA_FIXED(ci->fake_oid_index, IsDlgButtonChecked(hdlg, DS_FAKEOIDINDEX));
@@ -545,7 +588,7 @@ ds_options2Proc(HWND hdlg,
 	BOOL		enable;
 
 // if (WM_INITDIALOG == wMsg || WM_COMMAND == wMsg)
-// mylog("!!!! %s:%d in\n", __FUNCTION__, wMsg);
+// MYLOG(0, "entering wMsg=%d in\n", wMsg);
 	switch (wMsg)
 	{
 		case WM_INITDIALOG:
@@ -626,7 +669,6 @@ ds_options2Proc(HWND hdlg,
 			CheckDlgButton(hdlg, DS_SERVERSIDEPREPARE, ci->use_server_side_prepare);
 			CheckDlgButton(hdlg, DS_BYTEAASLONGVARBINARY, ci->bytea_as_longvarbinary);
 			/*CheckDlgButton(hdlg, DS_LOWERCASEIDENTIFIER, ci->lower_case_identifier);*/
-			CheckDlgButton(hdlg, DS_GSSAUTHUSEGSSAPI, ci->gssauth_use_gssapi);
 
 			EnableWindow(GetDlgItem(hdlg, DS_FAKEOIDINDEX), atoi(ci->show_oid_column));
 
@@ -655,11 +697,11 @@ ds_options2Proc(HWND hdlg,
 			switch (cmd = GET_WM_COMMAND_ID(wParam, lParam))
 			{
 				case DS_SHOWOIDCOLUMN:
-					mylog("WM_COMMAND: DS_SHOWOIDCOLUMN\n");
+					MYLOG(0, "WM_COMMAND: DS_SHOWOIDCOLUMN\n");
 					EnableWindow(GetDlgItem(hdlg, DS_FAKEOIDINDEX), IsDlgButtonChecked(hdlg, DS_SHOWOIDCOLUMN));
 					return TRUE;
 				case DS_DISABLE_KEEPALIVE:
-					mylog("WM_COMMAND: DS_SHOWOIDCOLUMN\n");
+					MYLOG(0, "WM_COMMAND: DS_SHOWOIDCOLUMN\n");
 					EnableWindow(GetDlgItem(hdlg, DS_KEEPALIVETIME), !IsDlgButtonChecked(hdlg, cmd));
 					EnableWindow(GetDlgItem(hdlg, DS_KEEPALIVEINTERVAL), !IsDlgButtonChecked(hdlg, cmd));
 					return TRUE;
@@ -699,7 +741,7 @@ ds_options3Draw(HWND hdlg, const ConnInfo *ci)
 	BOOL	enable = TRUE;
 	static BOOL defset = FALSE;
 
-mylog("!!!! %s in\n", __FUNCTION__);
+MYLOG(0, "entering\n");
 #ifdef	_HANDLE_ENLIST_IN_DTC_
 	switch (ci->xa_opt)
 	{
@@ -745,7 +787,7 @@ ds_options3_update(HWND hdlg, ConnInfo *ci)
 	PQCONNINFOPARSEPROC	pproc = NULL;
 	PQCONNINFOFREEPROC	fproc = NULL;	
 
-	mylog("%s: got ci = %p\n", __FUNCTION__, ci);
+	MYLOG(0, "entering got ci=%p\n", ci);
 
 	/* Datasource libpq parameters */
 	GetDlgItemText(hdlg, DS_LIBPQOPT, pqopt, sizeof(pqopt));
@@ -795,7 +837,7 @@ ds_options3Proc(HWND hdlg,
 	DWORD		cmd;
 
 if (WM_INITDIALOG == wMsg || WM_COMMAND == wMsg)
-mylog("!!!! %s:%d in\n", __FUNCTION__, wMsg);
+MYLOG(0, "entering wMsg=%d\n", wMsg);
 	switch (wMsg)
 	{
 		case WM_INITDIALOG:

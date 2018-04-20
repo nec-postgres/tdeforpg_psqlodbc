@@ -33,17 +33,47 @@
 extern "C" {
 #endif
 
-DLL_DECLARE void mylog(const char *fmt,...);
-#define	inolog	if (get_mylog() > 1) mylog /* for really temporary debug */
-
-extern void qlog(char *fmt,...);
-#define	inoqlog	if (get_qlog() > 1) qlog /* for really temporary debug */
+#ifndef	__GNUC__
+#define __attribute__(x)
+#endif
 
 /* Default size of message buffer */
 #define TDE_MSG_DEF_SIZE 1024
 
+DLL_DECLARE int mylog(const char *fmt,...) __attribute__((format(PG_PRINTF_ATTRIBUTE, 1, 2)));
+DLL_DECLARE int myprintf(const char *fmt,...) __attribute__((format(PG_PRINTF_ATTRIBUTE, 1, 2)));
+
+extern int qlog(char *fmt,...) __attribute__((format(PG_PRINTF_ATTRIBUTE, 1, 2)));
+extern int qprintf(char *fmt,...) __attribute__((format(PG_PRINTF_ATTRIBUTE, 1, 2)));
+
 /* extern log mask flag */
 extern BOOL	isLogMasked;
+const char *po_basename(const char *path);
+
+#define	PREPEND_FMT	"%10.10s[%s]%d: "
+#define	PREPEND_ITEMS	,po_basename(__FILE__), __FUNCTION__, __LINE__
+#define	QLOG_MARK	"[QLOG]"
+
+#ifdef	__GNUC__
+#define	MYLOG(level, fmt, ...) (level < get_mylog() ? mylog(PREPEND_FMT fmt PREPEND_ITEMS, ##__VA_ARGS__) : 0)
+#define	MYPRINTF(level, fmt, ...) (level < get_mylog() ? myprintf((fmt), ##__VA_ARGS__) : 0)
+#define	QLOG(level, fmt, ...) ((level < get_qlog() ? qlog((fmt), ##__VA_ARGS__) : 0), MYLOG(level, QLOG_MARK fmt, ##__VA_ARGS__))
+#define	QPRINTF(level, fmt, ...) ((level < get_qlog() ? qprintf((fmt), ##__VA_ARGS__) : 0), MYPRINTF(level, (fmt), ##__VA_ARGS__))
+#elif	defined WIN32 /* && _MSC_VER > 1800 */
+#define	MYLOG(level, fmt, ...) (level < get_mylog() ? mylog(PREPEND_FMT fmt PREPEND_ITEMS, __VA_ARGS__) : (printf || printf((fmt), __VA_ARGS__)))
+#define	MYPRINTF(level, fmt, ...) (level < get_mylog() ? myprintf(fmt, __VA_ARGS__) : (printf || printf((fmt), __VA_ARGS__)))
+#define	QLOG(level, fmt, ...) ((level < get_qlog() ? qlog((fmt), __VA_ARGS__) : (printf || printf(fmt, __VA_ARGS__))), MYLOG(level, QLOG_MARK fmt, __VA_ARGS__))
+#define	QPRINTF(level, fmt, ...) ((level < get_qlog() ? qprintf(fmt, __VA_ARGS__) : (printf || printf((fmt), __VA_ARGS__))), MYPRINTF(level, (fmt), __VA_ARGS__))
+#else
+#define	MYLOG(level, ...) (level < get_mylog() ? (mylog(PREPEND_FMT PREPEND_ITEMS), myprintf(__VA_ARGS__)) : 0)
+#define	MYPRINTF(level, ...) (level < get_mylog() ? myprintf(__VA_ARGS__) : 0)
+#define	QLOG(level, ...) ((level < get_qlog() ? qlog(__VA_ARGS__) : 0), MYLOG(level, QLOG_MARK), MYPRINTF(level, __VA_ARGS__))
+#define	QPRINTF(level, ...) ((level < get_qlog() ? qprintf(__VA_ARGS__) : 0), MYPRINTF(level, __VA_ARGS__))
+#endif /* __GNUC__ */
+
+#define	MIN_LOG_LEVEL	0
+#define	TUPLE_LOG_LEVEL	1
+#define	DETAIL_LOG_LEVEL	2
 
 int	get_qlog(void);
 int	get_mylog(void);

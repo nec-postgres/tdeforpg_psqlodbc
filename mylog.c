@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include <ctype.h>
 #include <time.h>
 
 #ifndef WIN32
@@ -51,7 +52,6 @@
 #define PG_BINARY_A			"a"
 #endif /* WIN32 */
 
-
 /* log mask flag for TDEforPG */
 BOOL     isLogMasked = FALSE;
 
@@ -60,6 +60,7 @@ static char *logdir = NULL;
 void
 generate_filename(const char *dirname, const char *prefix, char *filename, size_t filenamelen)
 {
+	const char *exename = GetExeProgramName();
 #ifdef	WIN32
 	int	pid;
 
@@ -77,6 +78,8 @@ generate_filename(const char *dirname, const char *prefix, char *filename, size_
 	snprintf(filename, filenamelen, "%s%s", dirname, DIRSEPARATOR);
 	if (prefix != 0)
 		strlcat(filename, prefix, filenamelen);
+	if (exename[0])
+		snprintfcat(filename, filenamelen, "%s_", exename);
 #ifndef WIN32
 	if (ptr)
 		strlcat(filename, ptr->pw_name, filenamelen);
@@ -103,6 +106,59 @@ generate_homefile(const char *prefix, char *filename, size_t filenamelen)
 	generate_filename(dir, prefix, filename, filenamelen);
 
 	return;
+}
+
+#ifdef  WIN32
+static  char    exename[_MAX_FNAME];
+#elif   defined MAXNAMELEN
+static  char    exename[MAXNAMELEN];
+#else
+static  char    exename[256];
+#endif
+
+const char *GetExeProgramName()
+{
+	static  int init = 1;
+
+	if (init)
+	{
+		UCHAR    *p;
+#ifdef  WIN32
+		char    pathname[_MAX_PATH];
+
+		if (GetModuleFileName(NULL, pathname, sizeof(pathname)) > 0)
+		_splitpath(pathname, NULL, NULL, exename, NULL);
+#else
+		CSTR flist[] = {"/proc/self/exe", "/proc/curproc/file", "/proc/curproc/exe" };
+		int     i;
+		char    path_name[256];
+
+		for (i = 0; i < sizeof(flist) / sizeof(flist[0]); i++)
+		{
+			if (readlink(flist[i], path_name, sizeof(path_name)) > 0)
+			{
+				/* fprintf(stderr, "i=%d pathname=%s\n", i, path_name); */
+				STRCPY_FIXED(exename, po_basename(path_name));
+				break;
+			}
+		}
+#endif /* WIN32 */
+		for (p = (UCHAR *) exename; '\0' != *p; p++)
+		{
+			if (isalnum(*p))
+				continue;
+			switch (*p)
+			{
+				case '_':
+				case '-':
+					continue;
+			}
+			*p = '\0';      /* avoid multi bytes for safety */
+			break;
+		}
+		init = 0;
+	}
+	return exename;
 }
 
 #if defined(WIN_MULTITHREAD_SUPPORT)
@@ -154,16 +210,6 @@ static int	mylog_on = 0, qlog_on = 0;
 #else
 #define QLOGDIR				"c:"
 #endif /* WIN32 */
-
-
-int	get_mylog(void)
-{
-	return mylog_on;
-}
-int	get_qlog(void)
-{
-	return qlog_on;
-}
 
 char *mask_log(char *log) {
 	const char *MASK = "*****";
@@ -284,6 +330,25 @@ end_logmask:
 	return buf;
 }
 
+
+int	get_mylog(void)
+{
+	return mylog_on;
+}
+int	get_qlog(void)
+{
+	return qlog_on;
+}
+
+const char *po_basename(const char *path)
+{
+	char *p;
+
+	if (p = strrchr(path,  DIRSEPARATOR[0]), NULL != p)
+		return p + 1;
+	return path;
+}
+
 void
 logs_on_off(int cnopen, int mylog_onoff, int qlog_onoff)
 {
@@ -293,7 +358,6 @@ logs_on_off(int cnopen, int mylog_onoff, int qlog_onoff)
 			qlog_off_count = 0;
 
 	ENTER_MYLOG_CS;
-	ENTER_QLOG_CS;
 	if (mylog_onoff)
 		mylog_on_count += cnopen;
 	else
@@ -309,18 +373,26 @@ logs_on_off(int cnopen, int mylog_onoff, int qlog_onoff)
 		mylog_on = 0;
 	else if (getGlobalDebug() > 0)
 		mylog_on = getGlobalDebug();
+	LEAVE_MYLOG_CS;
+
+	ENTER_QLOG_CS;
 	if (qlog_onoff)
 		qlog_on_count += cnopen;
 	else
 		qlog_off_count += cnopen;
 	if (qlog_on_count > 0)
-		qlog_on = 1;
+	{
+		if (qlog_onoff > qlog_on)
+			qlog_on = qlog_onoff;
+		else if (qlog_on < 1)
+			qlog_on = 1;
+	}
 	else if (qlog_off_count > 0)
 		qlog_on = 0;
 	else if (getGlobalCommlog() > 0)
 		qlog_on = getGlobalCommlog();
 	LEAVE_QLOG_CS;
-	LEAVE_MYLOG_CS;
+MYLOG(0, "mylog_on=%d qlog_on=%d\n", mylog_on, qlog_on);
 }
 
 #ifdef	WIN32
@@ -359,16 +431,16 @@ static void MLOG_open()
 	}
 }
 
-DLL_DECLARE void
-mylog(const char *fmt,...)
+static int
+mylog_misc(unsigned int option, const char *fmt, va_list args)
 {
-	va_list		args;
+	// va_list		args;
 	int		gerrno;
-	int		tmp_size; 		
+	BOOL	log_threadid = option;
+	int		tmp_size; 
 	char		tmp[TDE_MSG_DEF_SIZE];
 	char		*tmp_ext = tmp;
 	char		*ret;
-	if (!mylog_on)	return;
 
 	gerrno = GENERAL_ERRNO;
 	ENTER_MYLOG_CS;
@@ -376,7 +448,7 @@ mylog(const char *fmt,...)
 	if (!start_time)
 		start_time = timeGetTime();
 #endif /* LOGGING_PROCESS_TIME */
-	va_start(args, fmt);
+	// va_start(args, fmt);
 
 	if (!MLOGFP)
 	{
@@ -387,6 +459,8 @@ mylog(const char *fmt,...)
 
 	if (MLOGFP)
 	{
+		if (log_threadid)
+		{
 #ifdef	WIN_MULTITHREAD_SUPPORT
 #ifdef	LOGGING_PROCESS_TIME
 		DWORD	proc_time = timeGetTime() - start_time;
@@ -396,8 +470,10 @@ mylog(const char *fmt,...)
 #endif /* LOGGING_PROCESS_TIME */
 #endif /* WIN_MULTITHREAD_SUPPORT */
 #if defined(POSIX_MULTITHREAD_SUPPORT)
-		fprintf(MLOGFP, "[%lu]", pthread_self());
+		fprintf(MLOGFP, "[%lx]", (unsigned long int) pthread_self());
 #endif /* POSIX_MULTITHREAD_SUPPORT */
+		}
+
 		if (!isLogMasked)
 		{
 			vfprintf(MLOGFP, fmt, args);
@@ -405,26 +481,28 @@ mylog(const char *fmt,...)
 		else
 		{
 			tmp_size = vsnprintf(tmp_ext, TDE_MSG_DEF_SIZE, fmt, args);
+#ifdef WIN32
+			if (tmp_size == -1)
+			{
+				tmp_size = _vscprintf(fmt, args);
+			}
+#endif
 			if (tmp_size >= TDE_MSG_DEF_SIZE)
 			{
-				tmp_ext = (char *)malloc(tmp_size*sizeof(char)+1);
+				tmp_ext = (char *)malloc(tmp_size*sizeof(char) + 1);
 				if (tmp_ext)
 				{
-					va_start(args, fmt);
-					vsprintf(tmp_ext,fmt, args);
-					va_end(args);
+					vsprintf(tmp_ext, fmt, args);
 				}
 			}
-				
 			ret  = mask_log(tmp_ext);
-			
-			if (ret == tmp_ext) 
+			if (ret == NULL)
+			{
+				fputs("Could not allocate memory for log masking.\n", MLOGFP);
+			}
+			else if (ret == tmp_ext) 
 			{
 				fputs(ret,MLOGFP);
-			}
-			else if (ret == NULL)
-			{
-				fputs("Could not allocate memory for log masking.",MLOGFP);
 			}
 			else
 			{
@@ -440,13 +518,42 @@ mylog(const char *fmt,...)
 			}
 		
 		}
-		
 	}
 
-	va_end(args);
+	// va_end(args);
 	LEAVE_MYLOG_CS;
 	GENERAL_ERRNO_SET(gerrno);
+
+	return 1;
 }
+
+DLL_DECLARE int
+mylog(const char *fmt,...)
+{
+	int	ret = 0;
+	unsigned int option = 1;
+	va_list	args;
+
+	if (!mylog_on)	return ret;
+
+	va_start(args, fmt);
+	ret = mylog_misc(option, fmt, args);
+	va_end(args);
+	return	ret;
+}
+
+DLL_DECLARE int
+myprintf(const char *fmt,...)
+{
+	int	ret = 0;
+	va_list	args;
+
+	va_start(args, fmt);
+	ret = mylog_misc(0, fmt, args);
+	va_end(args);
+	return	ret;
+}
+
 static void mylog_initialize(void)
 {
 	INIT_MYLOG_CS;
@@ -464,10 +571,10 @@ static void mylog_finalize(void)
 
 
 static FILE *QLOGFP = NULL;
-void
-qlog(char *fmt,...)
+
+static int
+qlog_misc(unsigned int option, const char *fmt, va_list args)
 {
-	va_list		args;
 	char		filebuf[80];
 	int		gerrno;
 	int		tmp_size;
@@ -475,7 +582,7 @@ qlog(char *fmt,...)
 	char		*tmp_ext = tmp;
 	char		*ret;
 
-	if (!qlog_on)	return;
+	if (!qlog_on)	return 0;
 
 	gerrno = GENERAL_ERRNO;
 	ENTER_QLOG_CS;
@@ -483,29 +590,31 @@ qlog(char *fmt,...)
 	if (!start_time)
 		start_time = timeGetTime();
 #endif /* LOGGING_PROCESS_TIME */
-	va_start(args, fmt);
 
 	if (!QLOGFP)
 	{
-			generate_filename(logdir ? logdir : QLOGDIR, QLOGFILE, filebuf, sizeof(filebuf));
+		generate_filename(logdir ? logdir : QLOGDIR, QLOGFILE, filebuf, sizeof(filebuf));
+		QLOGFP = fopen(filebuf, PG_BINARY_A);
+		if (!QLOGFP)
+		{
+			generate_homefile(QLOGFILE, filebuf, sizeof(filebuf));
 			QLOGFP = fopen(filebuf, PG_BINARY_A);
-			if (!QLOGFP)
-			{
-				generate_homefile(QLOGFILE, filebuf, sizeof(filebuf));
-				QLOGFP = fopen(filebuf, PG_BINARY_A);
-			}
-			if (QLOGFP)
-				setbuf(QLOGFP, NULL);
-			else
-				qlog_on = 0;
 		}
-
 		if (QLOGFP)
+			setbuf(QLOGFP, NULL);
+		else
+			qlog_on = 0;
+	}
+
+	if (QLOGFP)
+	{
+		if (option)
 		{
 #ifdef	LOGGING_PROCESS_TIME
 		DWORD	proc_time = timeGetTime() - start_time;
 		fprintf(QLOGFP, "[%d.%03d]", proc_time / 1000, proc_time % 1000);
 #endif /* LOGGING_PROCESS_TIME */
+		}
 		
 		if (!isLogMasked)
 		{
@@ -514,25 +623,28 @@ qlog(char *fmt,...)
 		else
 		{
 			tmp_size = vsnprintf(tmp_ext, TDE_MSG_DEF_SIZE, fmt, args);
+#ifdef WIN32
+			if (tmp_size == -1)
+			{
+				tmp_size = _vscprintf(fmt, args);
+			}
+#endif
 			if (tmp_size >= TDE_MSG_DEF_SIZE)
 			{
-				tmp_ext = (char *)malloc(tmp_size*sizeof(char)+1);
+				tmp_ext = (char *)malloc(tmp_size*sizeof(char) + 1);
 				if (tmp_ext)
-					{
-						va_start(args, fmt);
-						vsprintf(tmp_ext,fmt, args);
-						va_end(args);
-					}
+				{
+					vsprintf(tmp_ext, fmt, args);
+				}
 			}
-
 			ret = mask_log(tmp_ext);
-			if (ret == tmp_ext)
+			if (ret == NULL)
+			{
+				fputs("Could not allocate memory for log masking.\n", QLOGFP);
+			}
+			else if (ret == tmp_ext)
 			{
 				fputs(ret,QLOGFP);
-			}
-			else if (ret == NULL)
-			{
-				fputs("Could not allocate memory for log masking.",QLOGFP);
 			}
 			else
 			{
@@ -549,10 +661,37 @@ qlog(char *fmt,...)
 		}
 	}
 
-	va_end(args);
 	LEAVE_QLOG_CS;
 	GENERAL_ERRNO_SET(gerrno);
+
+	return 1;
 }
+int
+qlog(char *fmt,...)
+{
+	int	ret = 0;
+	unsigned int option = 1;
+	va_list	args;
+
+	if (!qlog_on)	return ret;
+
+	va_start(args, fmt);
+	ret = qlog_misc(option, fmt, args);
+	va_end(args);
+	return	ret;
+}
+int
+qprintf(char *fmt,...)
+{
+	int	ret = 0;
+	va_list	args;
+
+	va_start(args, fmt);
+	ret = qlog_misc(0, fmt, args);
+	va_end(args);
+	return	ret;
+}
+
 static void qlog_initialize(void)
 {
 	INIT_QLOG_CS;

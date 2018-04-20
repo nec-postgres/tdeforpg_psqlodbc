@@ -61,7 +61,7 @@ struct ParameterInfoClass_
 	SQLSMALLINT	scale;		/* the scale for numeric type */
 	/* area for work variables */
 	char	data_at_exec;
-	BOOL isENCRYPT_BYTEA;
+	BOOL	isENCRYPT_BYTEA;
 };
 
 typedef struct

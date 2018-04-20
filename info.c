@@ -65,10 +65,10 @@ PGAPI_GetInfo(HDBC hdbc,
 	char		tmp[MAX_INFO_STRING];
 	SQLULEN			len = 0,
 				value = 0;
-	RETCODE		result = SQL_ERROR;
+	RETCODE		ret = SQL_ERROR;
 	char		odbcver[16];
 
-	mylog("%s: entering...fInfoType=%d\n", func, fInfoType);
+	MYLOG(0, "entering...fInfoType=%d\n", fInfoType);
 
 	if (!conn)
 	{
@@ -136,7 +136,7 @@ PGAPI_GetInfo(HDBC hdbc,
 		case SQL_CONVERT_VARCHAR:		/* ODBC 1.0 */
 			len = sizeof(SQLUINTEGER);
 			value = SQL_CVT_BIT | SQL_CVT_INTEGER;
-mylog("SQL_CONVERT_ mask=" FORMAT_ULEN "\n", value);
+MYLOG(0, "SQL_CONVERT_ mask=" FORMAT_ULEN "\n", value);
 			break;
 		case SQL_CONVERT_BIGINT:
 		case SQL_CONVERT_DECIMAL:
@@ -164,7 +164,7 @@ mylog("SQL_CONVERT_ mask=" FORMAT_ULEN "\n", value);
 		case SQL_CONVERT_FUNCTIONS:		/* ODBC 1.0 */
 			len = sizeof(SQLUINTEGER);
 			value = SQL_FN_CVT_CONVERT;
-mylog("CONVERT_FUNCTIONS=" FORMAT_ULEN "\n", value);
+MYLOG(0, "CONVERT_FUNCTIONS=" FORMAT_ULEN "\n", value);
 			break;
 
 		case SQL_CORRELATION_NAME:		/* ODBC 1.0 */
@@ -1025,9 +1025,9 @@ mylog("CONVERT_FUNCTIONS=" FORMAT_ULEN "\n", value);
 			goto cleanup;
 	}
 
-	result = SQL_SUCCESS;
+	ret = SQL_SUCCESS;
 
-	mylog("%s: p='%s', len=%d, value=%d, cbMax=%d\n", func, p ? p : "<NULL>", len, value, cbInfoValueMax);
+	MYLOG(0, "p='%s', len=" FORMAT_ULEN ", value=" FORMAT_ULEN ", cbMax=%d\n", p ? p : "<NULL>", len, value, cbInfoValueMax);
 
 	/*
 	 * NOTE, that if rgbInfoValue is NULL, then no warnings or errors
@@ -1053,7 +1053,7 @@ mylog("CONVERT_FUNCTIONS=" FORMAT_ULEN "\n", value);
 
 			if (len >= cbInfoValueMax)
 			{
-				result = SQL_SUCCESS_WITH_INFO;
+				ret = SQL_SUCCESS_WITH_INFO;
 				CC_set_error(conn, CONN_TRUNCATED, "The buffer was too small for the InfoValue.", func);
 			}
 		}
@@ -1078,7 +1078,7 @@ mylog("CONVERT_FUNCTIONS=" FORMAT_ULEN "\n", value);
 		*pcbInfoValue = (SQLSMALLINT) len;
 cleanup:
 
-	return result;
+	return ret;
 }
 
 /*
@@ -1108,9 +1108,9 @@ PGAPI_GetTypeInfo(HSTMT hstmt,
 	/* Int4 type; */
 	Int4		pgType;
 	Int2		sqlType;
-	RETCODE		result = SQL_SUCCESS;
+	RETCODE		ret = SQL_ERROR, result;
 
-	mylog("%s: entering...fSqlType = %d\n", func, fSqlType);
+	MYLOG(0, "entering...fSqlType=%d\n", fSqlType);
 
 	if (result = SC_initialize_and_recycle(stmt), SQL_SUCCESS != result)
 		return result;
@@ -1156,7 +1156,7 @@ PGAPI_GetTypeInfo(HSTMT hstmt,
 if (sqlType == SQL_LONGVARBINARY)
 {
 ConnInfo	*ci = &(conn->connInfo);
-inolog("%d sqltype=%d -> pgtype=%d\n", ci->bytea_as_longvarbinary, sqlType, pgType);
+MYLOG(DETAIL_LOG_LEVEL, "%d sqltype=%d -> pgtype=%d\n", ci->bytea_as_longvarbinary, sqlType, pgType);
 }
 
 		if (fSqlType == SQL_ALL_TYPES || fSqlType == sqlType)
@@ -1166,19 +1166,18 @@ inolog("%d sqltype=%d -> pgtype=%d\n", ci->bytea_as_longvarbinary, sqlType, pgTy
 			/*if (SQL_INTEGER == sqlType || SQL_TINYINT == sqlType)*/
 			if (SQL_INTEGER == sqlType)
 			{
-mylog("sqlType=%d ms_jet=%d\n", sqlType, conn->ms_jet);
+MYLOG(0, "sqlType=%d ms_jet=%d\n", sqlType, conn->ms_jet);
 				if (conn->ms_jet)
 				{
 					aunq_match = 1;
 					pgtcount = 2;
 				}
-mylog("aunq_match=%d pgtcount=%d\n", aunq_match, pgtcount);
+MYLOG(0, "aunq_match=%d pgtcount=%d\n", aunq_match, pgtcount);
 			}
 			for (cnt = 0; cnt < pgtcount; cnt ++)
 			{
 				if (tuple = QR_AddNew(res), NULL == tuple)
 				{
-					result = SQL_ERROR;
 					SC_set_error(stmt, STMT_NO_MEMORY_ERROR, "Couldn't QR_AddNew.", func);
 					goto cleanup;
 				}
@@ -1188,7 +1187,7 @@ mylog("aunq_match=%d pgtcount=%d\n", aunq_match, pgtcount);
 				{
 					set_tuplefield_string(&tuple[GETTYPE_TYPE_NAME], PGTYPE_TO_NAME(conn, pgType, TRUE));
 					set_tuplefield_int2(&tuple[GETTYPE_NULLABLE], SQL_NO_NULLS);
-inolog("serial in\n");
+MYLOG(DETAIL_LOG_LEVEL, "serial in\n");
 				}
 				else
 				{
@@ -1228,6 +1227,7 @@ inolog("serial in\n");
 			}
 		}
 	}
+	ret = SQL_SUCCESS;
 
 cleanup:
 #undef	return
@@ -1237,13 +1237,13 @@ cleanup:
 	 */
 	stmt->status = STMT_FINISHED;
 	stmt->currTuple = -1;
-	if (SQL_SUCCEEDED(result))
+	if (SQL_SUCCEEDED(ret))
 		SC_set_rowset_start(stmt, -1, FALSE);
 	else
 		SC_set_Result(stmt, NULL);
 	SC_set_current_col(stmt, -1);
 
-	return result;
+	return ret;
 }
 
 
@@ -1252,11 +1252,10 @@ PGAPI_GetFunctions(HDBC hdbc,
 				   SQLUSMALLINT fFunction,
 				   SQLUSMALLINT * pfExists)
 {
-	CSTR func = "PGAPI_GetFunctions";
 	ConnectionClass *conn = (ConnectionClass *) hdbc;
 	ConnInfo   *ci = &(conn->connInfo);
 
-	mylog("%s: entering...%u\n", func, fFunction);
+	MYLOG(0, "entering...%u\n", fFunction);
 
 	if (fFunction == SQL_API_ALL_FUNCTIONS)
 	{
@@ -1509,11 +1508,11 @@ PGAPI_GetFunctions(HDBC hdbc,
 }
 
 
-static char	*
-simpleCatalogEscape(const SQLCHAR *src, SQLLEN srclen, const ConnectionClass *conn)
+char *
+identifierEscape(const SQLCHAR *src, SQLLEN srclen, const ConnectionClass *conn, char *buf, size_t bufsize, BOOL double_quote)
 {
 	int	i, outlen;
-	const char *in;
+	UCHAR	tchar;
 	char	*dest = NULL, escape_ch = CC_get_escape(conn);
 	encoded_str	encstr;
 
@@ -1523,26 +1522,45 @@ simpleCatalogEscape(const SQLCHAR *src, SQLLEN srclen, const ConnectionClass *co
 		srclen = (SQLLEN) strlen((char *) src);
 	if (srclen <= 0)
 		return dest;
-mylog("simple in=%s(%d)\n", src, srclen);
-	encoded_str_constr(&encstr, conn->ccsc, (char *) src);
-	dest = malloc(2 * srclen + 1);
-	if (!dest) return NULL;
-	for (i = 0, in = (char *) src, outlen = 0; i < srclen; i++, in++)
+MYLOG(0, "entering in=%s(" FORMAT_LEN ")\n", src, srclen);
+	if (NULL != buf && bufsize > 0)
+		dest = buf;
+	else
 	{
-                encoded_nextchar(&encstr);
-                if (ENCODE_STATUS(encstr) != 0)
+		bufsize = 2 * srclen + 1;
+		dest = malloc(bufsize);
+	}
+	if (!dest) return NULL;
+	encoded_str_constr(&encstr, conn->ccsc, (char *) src);
+	outlen = 0;
+	if (double_quote)
+		dest[outlen++] = IDENTIFIER_QUOTE;
+	for (i = 0, tchar = encoded_nextchar(&encstr); i < srclen && outlen < bufsize - 1; i++, tchar = encoded_nextchar(&encstr))
+	{
+                if (MBCS_NON_ASCII(encstr))
                 {
-                        dest[outlen++] = *in;
+                        dest[outlen++] = tchar;
                         continue;
                 }
-		if (LITERAL_QUOTE == *in ||
-		    escape_ch == *in)
-			dest[outlen++] = *in;
-		dest[outlen++] = *in;
+		if (LITERAL_QUOTE == tchar ||
+		    escape_ch == tchar)
+			dest[outlen++] = tchar;
+		else if (double_quote &&
+			 IDENTIFIER_QUOTE == tchar)
+			dest[outlen++] = tchar;
+		dest[outlen++] = tchar;
 	}
+	if (double_quote)
+		dest[outlen++] = IDENTIFIER_QUOTE;
 	dest[outlen] = '\0';
-mylog("simple output=%s(%d)\n", dest, outlen);
+MYLOG(0, "leaving output=%s(%d)\n", dest, outlen);
 	return dest;
+}
+
+static char *
+simpleCatalogEscape(const SQLCHAR *src, SQLLEN srclen, const ConnectionClass *conn)
+{
+	return identifierEscape(src, srclen, conn, NULL, -1, FALSE);
 }
 
 /*
@@ -1552,7 +1570,7 @@ static char	*
 adjustLikePattern(const SQLCHAR *src, int srclen, const ConnectionClass *conn)
 {
 	int	i, outlen;
-	const char *in;
+	UCHAR	tchar;
 	char	*dest = NULL, escape_in_literal = CC_get_escape(conn);
 	BOOL	escape_in = FALSE;
 	encoded_str	encstr;
@@ -1564,21 +1582,21 @@ adjustLikePattern(const SQLCHAR *src, int srclen, const ConnectionClass *conn)
 	/* if (srclen <= 0) */
 	if (srclen < 0)
 		return dest;
-mylog("adjust in=%.*s(%d)\n", srclen, src, srclen);
+MYLOG(0, "entering in=%.*s(%d)\n", srclen, src, srclen);
 	encoded_str_constr(&encstr, conn->ccsc, (char *) src);
 	dest = malloc(4 * srclen + 1);
 	if (!dest) return NULL;
-	for (i = 0, in = (char *) src, outlen = 0; i < srclen; i++, in++)
+	for (i = 0, outlen = 0; i < srclen; i++)
 	{
-		encoded_nextchar(&encstr);
-		if (ENCODE_STATUS(encstr) != 0)
+		tchar = encoded_nextchar(&encstr);
+		if (MBCS_NON_ASCII(encstr))
 		{
-			dest[outlen++] = *in;
+			dest[outlen++] = tchar;
 			continue;
 		}
 		if (escape_in)
 		{
-			switch (*in)
+			switch (tchar)
 			{
 				case '%':
 				case '_':
@@ -1590,7 +1608,7 @@ mylog("adjust in=%.*s(%d)\n", srclen, src, srclen);
 					break;
 			}
 		}
-		if (*in == SEARCH_PATTERN_ESCAPE)
+		if (tchar == SEARCH_PATTERN_ESCAPE)
 		{
 			escape_in = TRUE;
 			if (SEARCH_PATTERN_ESCAPE == escape_in_literal)
@@ -1599,10 +1617,10 @@ mylog("adjust in=%.*s(%d)\n", srclen, src, srclen);
 		else
 		{
 			escape_in = FALSE;
-			if (LITERAL_QUOTE == *in)
-				dest[outlen++] = *in;
+			if (LITERAL_QUOTE == tchar)
+				dest[outlen++] = tchar;
 		}
-		dest[outlen++] = *in;
+		dest[outlen++] = tchar;
 	}
 	if (escape_in)
 	{
@@ -1611,7 +1629,7 @@ mylog("adjust in=%.*s(%d)\n", srclen, src, srclen);
 		dest[outlen++] = SEARCH_PATTERN_ESCAPE;
 	}
 	dest[outlen] = '\0';
-mylog("adjust output=%s(%d)\n", dest, outlen);
+MYLOG(0, "leaving output=%s(%d)\n", dest, outlen);
 	return dest;
 }
 
@@ -1683,14 +1701,13 @@ PGAPI_Tables(HSTMT hstmt,
 {
 	CSTR func = "PGAPI_Tables";
 	StatementClass *stmt = (StatementClass *) hstmt;
-	StatementClass *tbl_stmt;
+	StatementClass *tbl_stmt = NULL;
 	QResultClass	*res;
 	TupleField	*tuple;
-	HSTMT		htbl_stmt = NULL;
 	RETCODE		ret = SQL_ERROR, result;
 	int		result_cols;
 	char		*tableType = NULL;
-	char		tables_query[INFO_INQUIRY_LEN];
+	PQExpBufferData		tables_query = {0};
 	char		table_name[MAX_INFO_STRING],
 				table_owner[MAX_INFO_STRING],
 				relkind_or_hasrules[MAX_INFO_STRING];
@@ -1724,7 +1741,7 @@ PGAPI_Tables(HSTMT hstmt,
 	SQLLEN		cbRelname, cbRelkind, cbSchName;
 	EnvironmentClass *env;
 
-	mylog("%s: entering...stmt=%p scnm=%p len=%d\n", func, stmt, szTableOwner, cbTableOwner);
+	MYLOG(0, "entering...stmt=%p scnm=%p len=%d\n", stmt, szTableOwner, cbTableOwner);
 
 	if (result = SC_initialize_and_recycle(stmt), SQL_SUCCESS != result)
 		return result;
@@ -1733,13 +1750,12 @@ PGAPI_Tables(HSTMT hstmt,
 	ci = &(conn->connInfo);
 	env = CC_get_env(conn);
 
-	result = PGAPI_AllocStmt(conn, &htbl_stmt, 0);
+	result = PGAPI_AllocStmt(conn, (HSTMT *) &tbl_stmt, 0);
 	if (!SQL_SUCCEEDED(result))
 	{
 		SC_set_error(stmt, STMT_NO_MEMORY_ERROR, "Couldn't allocate statement for PGAPI_Tables result.", func);
 		return SQL_ERROR;
 	}
-	tbl_stmt = (StatementClass *) htbl_stmt;
 	szSchemaName = szTableOwner;
 	cbSchemaName = cbTableOwner;
 
@@ -1787,9 +1803,10 @@ retry_public_schema:
 	}
 	list_some = (list_cat || list_schemas || list_table_types);
 
-	tables_query[0] = '\0';
+	initPQExpBuffer(&tables_query);
+#define	return	DONT_CALL_RETURN_FROM_HERE???
 	if (list_cat)
-		STRCPY_FIXED(tables_query, "select NULL, NULL, NULL");
+		appendPQExpBufferStr(&tables_query, "select NULL, NULL, NULL");
 	else if (list_table_types)
 	{
 		/*
@@ -1797,7 +1814,7 @@ retry_public_schema:
 		 * - 9.3 and newer versions have materialized views
 		 * - 9.1 and newer versions have foreign tables
 		 */
-		STRCPY_FIXED(tables_query,
+		appendPQExpBufferStr(&tables_query,
 				"select NULL, NULL, relkind from (select 'r' as relkind "
 				"union select 'v' "
 				"union select 'm' "
@@ -1805,7 +1822,7 @@ retry_public_schema:
 	}
 	else if (list_schemas)
 	{
-		STRCPY_FIXED(tables_query, "select NULL, nspname, NULL"
+		appendPQExpBufferStr(&tables_query, "select NULL, nspname, NULL"
 			" from pg_catalog.pg_namespace n where true");
 	}
 	else
@@ -1815,7 +1832,7 @@ retry_public_schema:
 		 * Materialized views are added in 9.3, and foreign
 		 * tables in 9.1.
 		 */
-		STRCPY_FIXED(tables_query, "select relname, nspname, relkind "
+		appendPQExpBufferStr(&tables_query, "select relname, nspname, relkind "
 			"from pg_catalog.pg_class c, pg_catalog.pg_namespace n "
 			"where relkind in ('r', 'v', 'm', 'f')");
 	}
@@ -1823,9 +1840,9 @@ retry_public_schema:
 	op_string = gen_opestr(like_or_eq, conn);
 	if (!list_some)
 	{
-		schema_strcat1(tables_query, sizeof(tables_query), " and nspname %s'%.*s'", op_string, escSchemaName, szTableName, cbTableName, conn);
+		schema_appendPQExpBuffer1(&tables_query, " and nspname %s'%.*s'", op_string, escSchemaName, TABLE_IS_VALID(szTableName, cbTableName), conn);
 		if (IS_VALID_NAME(escTableName))
-			SPRINTFCAT_FIXED(tables_query,
+			appendPQExpBuffer(&tables_query,
 					 " and relname %s'%s'", op_string, escTableName);
 	}
 
@@ -1911,24 +1928,29 @@ retry_public_schema:
 	 * tables, then dont filter either.
 	 */
 	if ((list_schemas || !list_some) && !atoi(ci->show_system_tables) && !show_system_tables)
-		STRCAT_FIXED(tables_query, " and nspname not in ('pg_catalog', 'information_schema', 'pg_toast', 'pg_temp_1')");
+		appendPQExpBufferStr(&tables_query, " and nspname not in ('pg_catalog', 'information_schema', 'pg_toast', 'pg_temp_1')");
 
 	if (!list_some)
 	{
 		if (CC_accessible_only(conn))
-			STRCAT_FIXED(tables_query, " and has_table_privilege(c.oid, 'select')");
+			appendPQExpBufferStr(&tables_query, " and has_table_privilege(c.oid, 'select')");
 	}
 	if (list_schemas)
-		STRCAT_FIXED(tables_query, " order by nspname");
+		appendPQExpBufferStr(&tables_query, " order by nspname");
 	else if (list_some)
 		;
 	else
-		STRCAT_FIXED(tables_query, " and n.oid = relnamespace order by nspname, relname");
+		appendPQExpBufferStr(&tables_query, " and n.oid = relnamespace order by nspname, relname");
 
-	result = PGAPI_ExecDirect(htbl_stmt, (SQLCHAR *) tables_query, SQL_NTS, PODBC_RDONLY);
+	if (PQExpBufferDataBroken(tables_query))
+	{
+		SC_set_error(stmt, STMT_NO_MEMORY_ERROR, "Out of memory in PGAPI_Tables()", func);
+		goto cleanup;
+	}
+	result = PGAPI_ExecDirect(tbl_stmt, (SQLCHAR *) tables_query.data, SQL_NTS, PODBC_RDONLY);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_full_error_copy(stmt, htbl_stmt, FALSE);
+		SC_full_error_copy(stmt, tbl_stmt, FALSE);
 		goto cleanup;
 	}
 
@@ -1947,26 +1969,23 @@ retry_public_schema:
 	if (CC_is_in_unicode_driver(conn))
 		internal_asis_type = INTERNAL_ASIS_TYPE;
 #endif /* UNICODE_SUPPORT */
-	result = PGAPI_BindCol(htbl_stmt, 1, internal_asis_type,
+	result = PGAPI_BindCol(tbl_stmt, 1, internal_asis_type,
 			table_name, MAX_INFO_STRING, &cbRelname);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, tbl_stmt, TRUE);
 		goto cleanup;
 	}
 
-	result = PGAPI_BindCol(htbl_stmt, 2, internal_asis_type,
+	result = PGAPI_BindCol(tbl_stmt, 2, internal_asis_type,
 						   table_owner, MAX_INFO_STRING, &cbSchName);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, tbl_stmt, TRUE);
 		goto cleanup;
 	}
-	result = PGAPI_BindCol(htbl_stmt, 3, internal_asis_type,
+	result = PGAPI_BindCol(tbl_stmt, 3, internal_asis_type,
 			relkind_or_hasrules, MAX_INFO_STRING, &cbRelkind);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, tbl_stmt, TRUE);
 		goto cleanup;
 	}
 
@@ -2006,7 +2025,7 @@ retry_public_schema:
 	/* add the tuples */
 	table_name[0] = '\0';
 	table_owner[0] = '\0';
-	result = PGAPI_Fetch(htbl_stmt);
+	result = PGAPI_Fetch(tbl_stmt);
 	while (SQL_SUCCEEDED(result))
 	{
 		/*
@@ -2026,7 +2045,7 @@ retry_public_schema:
 				/* Check extra system table prefixes */
 				for (i = 0; i < nprefixes; i++)
 				{
-					mylog("table_name='%s', prefix[%d]='%s'\n", table_name, i, prefix[i]);
+					MYLOG(0, "table_name='%s', prefix[%d]='%s'\n", table_name, i, prefix[i]);
 					if (strncmp(table_name, prefix[i], strlen(prefix[i])) == 0)
 					{
 						systable = TRUE;
@@ -2074,7 +2093,7 @@ retry_public_schema:
 			 * set_tuplefield_string(&tuple[TABLES_SCHEMA_NAME], table_owner);
 			 */
 
-			mylog("%s: table_name = '%s'\n", func, table_name);
+			MYLOG(0, "table_name = '%s'\n", table_name);
 
 			if (list_schemas || !list_some)
 				set_tuplefield_string(&tuple[TABLES_SCHEMA_NAME], GET_SCHEMA_NAME(table_owner));
@@ -2102,11 +2121,11 @@ retry_public_schema:
 			set_tuplefield_string(&tuple[TABLES_REMARKS], NULL_STRING);
 			/*** set_tuplefield_string(&tuple[TABLES_REMARKS], "TABLE"); ***/
 		}
-		result = PGAPI_Fetch(htbl_stmt);
+		result = PGAPI_Fetch(tbl_stmt);
 	}
 	if (result != SQL_NO_DATA_FOUND)
 	{
-		SC_full_error_copy(stmt, htbl_stmt, FALSE);
+		SC_full_error_copy(stmt, tbl_stmt, FALSE);
 		goto cleanup;
 	}
 	ret = SQL_SUCCESS;
@@ -2119,6 +2138,10 @@ cleanup:
 	 */
 	stmt->status = STMT_FINISHED;
 
+	if (!SQL_SUCCEEDED(ret) && 0 >= SC_get_errornumber(stmt))
+		SC_error_copy(stmt, tbl_stmt, TRUE);
+	if (!PQExpBufferDataBroken(tables_query))
+		termPQExpBuffer(&tables_query);
 	if (escCatName)
 		free(escCatName);
 	if (escSchemaName)
@@ -2132,10 +2155,10 @@ cleanup:
 	SC_set_rowset_start(stmt, -1, FALSE);
 	SC_set_current_col(stmt, -1);
 
-	if (htbl_stmt)
-		PGAPI_FreeStmt(htbl_stmt, SQL_DROP);
+	if (tbl_stmt)
+		PGAPI_FreeStmt(tbl_stmt, SQL_DROP);
 
-	mylog("%s: EXIT, stmt=%p, ret=%d\n", func, stmt, ret);
+	MYLOG(0, "leaving stmt=%p, ret=%d\n", stmt, ret);
 	return ret;
 }
 
@@ -2208,10 +2231,9 @@ PGAPI_Columns(HSTMT hstmt,
 	StatementClass *stmt = (StatementClass *) hstmt;
 	QResultClass	*res;
 	TupleField	*tuple;
-	HSTMT		hcol_stmt = NULL;
-	StatementClass *col_stmt;
-	char		columns_query[INFO_INQUIRY_LEN];
-	RETCODE		result;
+	StatementClass *col_stmt = NULL;
+	PQExpBufferData		columns_query = {0};
+	RETCODE		ret = SQL_ERROR, result;
 	char		table_owner[MAX_INFO_STRING],
 				table_name[MAX_INFO_STRING],
 				field_name[MAX_INFO_STRING],
@@ -2223,7 +2245,7 @@ PGAPI_Columns(HSTMT hstmt,
 				typmod, relhasoids;
 	OID		field_type, greloid, basetype;
 	char		not_null[MAX_INFO_STRING],
-				relhasrules[MAX_INFO_STRING], relkind[8];
+				relhasrules[MAX_INFO_STRING], relkind[8], attidentity[2];
 	char	*escSchemaName = NULL, *escTableName = NULL, *escColumnName = NULL;
 	BOOL	search_pattern = TRUE, search_by_ids, relisaview, show_oid_column, row_versioning;
 	ConnInfo   *ci;
@@ -2233,7 +2255,7 @@ PGAPI_Columns(HSTMT hstmt,
 	const SQLCHAR *szSchemaName;
 	BOOL	setIdentity = FALSE;
 
-	mylog("%s: entering...stmt=%p scnm=%p len=%d\n", func, stmt, szTableOwner, cbTableOwner);
+	MYLOG(0, "entering...stmt=%p scnm=%p len=%d\n", stmt, szTableOwner, cbTableOwner);
 
 	if (result = SC_initialize_and_recycle(stmt), SQL_SUCCESS != result)
 		return result;
@@ -2287,56 +2309,60 @@ retry_public_schema:
 		else
 			escSchemaName = simpleCatalogEscape(szSchemaName, cbSchemaName, conn);
 	}
+	initPQExpBuffer(&columns_query);
+#define	return	DONT_CALL_RETURN_FROM_HERE???
 	/*
 	 * Create the query to find out the columns (Note: pre 6.3 did not
 	 * have the atttypmod field)
 	 */
 	op_string = gen_opestr(like_or_eq, conn);
-	SPRINTF_FIXED(columns_query,
+	printfPQExpBuffer(&columns_query,
 		"select n.nspname, c.relname, a.attname, a.atttypid, "
 		"t.typname, a.attnum, a.attlen, a.atttypmod, a.attnotnull, "
 		"c.relhasrules, c.relkind, c.oid, pg_get_expr(d.adbin, d.adrelid), "
         "case t.typtype when 'd' then t.typbasetype else 0 end, t.typtypmod, "
-        "c.relhasoids "
+        "c.relhasoids, %s "
 		"from (((pg_catalog.pg_class c "
-		"inner join pg_catalog.pg_namespace n on n.oid = c.relnamespace");
+		"inner join pg_catalog.pg_namespace n on n.oid = c.relnamespace", PG_VERSION_GE(conn, 10.0) ? "attidentity" : "''");
 	if (search_by_ids)
-		SPRINTFCAT_FIXED(columns_query, " and c.oid = %u", reloid);
+		appendPQExpBuffer(&columns_query, " and c.oid = %u", reloid);
 	else
 	{
 		if (escTableName)
-			SPRINTFCAT_FIXED(columns_query, " and c.relname %s'%s'", op_string, escTableName);
-		schema_strcat1(columns_query, sizeof(columns_query), " and n.nspname %s'%.*s'", op_string, escSchemaName, szTableName, cbTableName, conn);
+			appendPQExpBuffer(&columns_query, " and c.relname %s'%s'", op_string, escTableName);
+		schema_appendPQExpBuffer1(&columns_query, " and n.nspname %s'%.*s'", op_string, escSchemaName, TABLE_IS_VALID(szTableName, cbTableName), conn);
 	}
-	STRCAT_FIXED(columns_query, ") inner join pg_catalog.pg_attribute a"
+	appendPQExpBufferStr(&columns_query, ") inner join pg_catalog.pg_attribute a"
 		" on (not a.attisdropped)");
 	if (0 == attnum && (NULL == escColumnName || like_or_eq != eqop))
-		STRCAT_FIXED(columns_query, " and a.attnum > 0");
+		appendPQExpBufferStr(&columns_query, " and a.attnum > 0");
 	if (search_by_ids)
 	{
 		if (attnum != 0)
-			SPRINTFCAT_FIXED(columns_query, " and a.attnum = %d", attnum);
+			appendPQExpBuffer(&columns_query, " and a.attnum = %d", attnum);
 	}
 	else if (escColumnName)
-		SPRINTFCAT_FIXED(columns_query, " and a.attname %s'%s'", op_string, escColumnName);
-	STRCAT_FIXED(columns_query,
+		appendPQExpBuffer(&columns_query, " and a.attname %s'%s'", op_string, escColumnName);
+	appendPQExpBufferStr(&columns_query,
 		" and a.attrelid = c.oid) inner join pg_catalog.pg_type t"
 		" on t.oid = a.atttypid) left outer join pg_attrdef d"
 		" on a.atthasdef and d.adrelid = a.attrelid and d.adnum = a.attnum");
-	STRCAT_FIXED(columns_query, " order by n.nspname, c.relname, attnum");
-
-	result = PGAPI_AllocStmt(conn, &hcol_stmt, 0);
+	appendPQExpBufferStr(&columns_query, " order by n.nspname, c.relname, attnum");
+	if (PQExpBufferDataBroken(columns_query))
+	{
+		SC_set_error(stmt, STMT_NO_MEMORY_ERROR, "Out of memory in PGAPI_Columns()", func);
+		goto cleanup;
+	}
+	result = PGAPI_AllocStmt(conn, (HSTMT *) &col_stmt, 0);
 	if (!SQL_SUCCEEDED(result))
 	{
 		SC_set_error(stmt, STMT_NO_MEMORY_ERROR, "Couldn't allocate statement for PGAPI_Columns result.", func);
-		result = SQL_ERROR;
 		goto cleanup;
 	}
-	col_stmt = (StatementClass *) hcol_stmt;
 
-	mylog("%s: hcol_stmt = %p, col_stmt = %p\n", func, hcol_stmt, col_stmt);
+	MYLOG(0, "col_stmt = %p\n", col_stmt);
 
-	result = PGAPI_ExecDirect(hcol_stmt, (SQLCHAR *) columns_query, SQL_NTS, PODBC_RDONLY);
+	result = PGAPI_ExecDirect(col_stmt, (SQLCHAR *) columns_query.data, SQL_NTS, PODBC_RDONLY);
 	if (!SQL_SUCCEEDED(result))
 	{
 		SC_full_error_copy(stmt, col_stmt, FALSE);
@@ -2351,133 +2377,125 @@ retry_public_schema:
 		if (!search_by_ids &&
 		    allow_public_schema(conn, szSchemaName, cbSchemaName))
 		{
-			PGAPI_FreeStmt(hcol_stmt, SQL_DROP);
-			hcol_stmt = NULL;
+			PGAPI_FreeStmt(col_stmt, SQL_DROP);
+			col_stmt = NULL;
 			szSchemaName = pubstr;
 			cbSchemaName = SQL_NTS;
 			goto retry_public_schema;
 		}
 	}
 
-	result = PGAPI_BindCol(hcol_stmt, 1, internal_asis_type,
+	result = PGAPI_BindCol(col_stmt, 1, internal_asis_type,
 						   table_owner, MAX_INFO_STRING, NULL);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, col_stmt, TRUE);
 		goto cleanup;
 	}
 
-	result = PGAPI_BindCol(hcol_stmt, 2, internal_asis_type,
+	result = PGAPI_BindCol(col_stmt, 2, internal_asis_type,
 						   table_name, MAX_INFO_STRING, NULL);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, col_stmt, TRUE);
 		goto cleanup;
 	}
 
-	result = PGAPI_BindCol(hcol_stmt, 3, internal_asis_type,
+	result = PGAPI_BindCol(col_stmt, 3, internal_asis_type,
 						   field_name, MAX_INFO_STRING, NULL);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, col_stmt, TRUE);
 		goto cleanup;
 	}
 
-	result = PGAPI_BindCol(hcol_stmt, 4, SQL_C_ULONG,
+	result = PGAPI_BindCol(col_stmt, 4, SQL_C_ULONG,
 						   &field_type, 4, NULL);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, col_stmt, TRUE);
 		goto cleanup;
 	}
 
-	result = PGAPI_BindCol(hcol_stmt, 5, internal_asis_type,
+	result = PGAPI_BindCol(col_stmt, 5, internal_asis_type,
 						   field_type_name, MAX_INFO_STRING, NULL);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, col_stmt, TRUE);
 		goto cleanup;
 	}
 
-	result = PGAPI_BindCol(hcol_stmt, 6, SQL_C_SHORT,
+	result = PGAPI_BindCol(col_stmt, 6, SQL_C_SHORT,
 						   &field_number, MAX_INFO_STRING, NULL);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, col_stmt, TRUE);
 		goto cleanup;
 	}
 
 #ifdef	NOT_USED
-	result = PGAPI_BindCol(hcol_stmt, 7, SQL_C_LONG,
+	result = PGAPI_BindCol(col_stmt, 7, SQL_C_LONG,
 						   &field_length, MAX_INFO_STRING, NULL);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, col_stmt, TRUE);
 		goto cleanup;
 	}
 #endif /* NOT_USED */
 
-	result = PGAPI_BindCol(hcol_stmt, 8, SQL_C_LONG,
+	result = PGAPI_BindCol(col_stmt, 8, SQL_C_LONG,
 						   &mod_length, MAX_INFO_STRING, NULL);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, col_stmt, TRUE);
 		goto cleanup;
 	}
 
-	result = PGAPI_BindCol(hcol_stmt, 9, internal_asis_type,
+	result = PGAPI_BindCol(col_stmt, 9, internal_asis_type,
 						   not_null, MAX_INFO_STRING, NULL);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, col_stmt, TRUE);
 		goto cleanup;
 	}
 
-	result = PGAPI_BindCol(hcol_stmt, 10, internal_asis_type,
+	result = PGAPI_BindCol(col_stmt, 10, internal_asis_type,
 						   relhasrules, MAX_INFO_STRING, NULL);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, col_stmt, TRUE);
 		goto cleanup;
 	}
 
-	result = PGAPI_BindCol(hcol_stmt, 11, internal_asis_type,
+	result = PGAPI_BindCol(col_stmt, 11, internal_asis_type,
 						   relkind, sizeof(relkind), NULL);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, col_stmt, TRUE);
 		goto cleanup;
 	}
 
-	result = PGAPI_BindCol(hcol_stmt, 12, SQL_C_LONG,
+	result = PGAPI_BindCol(col_stmt, 12, SQL_C_LONG,
 					&greloid, sizeof(greloid), NULL);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, col_stmt, TRUE);
 		goto cleanup;
 	}
 
-	result = PGAPI_BindCol(hcol_stmt, 14, SQL_C_ULONG,
+	result = PGAPI_BindCol(col_stmt, 14, SQL_C_ULONG,
 					&basetype, sizeof(basetype), NULL);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, col_stmt, TRUE);
 		goto cleanup;
 	}
 
-	result = PGAPI_BindCol(hcol_stmt, 15, SQL_C_LONG,
+	result = PGAPI_BindCol(col_stmt, 15, SQL_C_LONG,
 					&typmod, sizeof(typmod), NULL);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, col_stmt, TRUE);
 		goto cleanup;
 	}
 
-	result = PGAPI_BindCol(hcol_stmt, 16, SQL_C_LONG,
+	result = PGAPI_BindCol(col_stmt, 16, SQL_C_LONG,
 					&relhasoids, sizeof(relhasoids), NULL);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, col_stmt, TRUE);
+		goto cleanup;
+	}
+
+	result = PGAPI_BindCol(col_stmt, 17, SQL_C_CHAR,
+					attidentity, sizeof(attidentity), NULL);
+	if (!SQL_SUCCEEDED(result))
+	{
 		goto cleanup;
 	}
 
@@ -2533,7 +2551,7 @@ retry_public_schema:
 	QR_set_field_info_v(res, COLUMNS_ATTTYPMOD, "TYPMOD", PG_TYPE_INT4, 4);
 
 	ordinal = 1;
-	result = PGAPI_Fetch(hcol_stmt);
+	result = PGAPI_Fetch(col_stmt);
 
 	/*
 	 * Only show oid if option AND there are other columns AND it's not
@@ -2575,11 +2593,11 @@ retry_public_schema:
 		char	*attdef;
 
 		attdef = NULL;
-		PGAPI_SetPos(hcol_stmt, 1, SQL_POSITION, 0);
-		PGAPI_GetData(hcol_stmt, 13, internal_asis_type, NULL, 0, &len_needed);
+		PGAPI_SetPos(col_stmt, 1, SQL_POSITION, 0);
+		PGAPI_GetData(col_stmt, 13, internal_asis_type, NULL, 0, &len_needed);
 		if (len_needed > 0)
 		{
-mylog("len_needed=%d\n", len_needed);
+MYLOG(0, "len_needed=" FORMAT_LEN "\n", len_needed);
 			attdef = malloc(len_needed + 1);
 			if (!attdef)
 			{
@@ -2587,8 +2605,8 @@ mylog("len_needed=%d\n", len_needed);
 				goto cleanup;
 			}
 
-			PGAPI_GetData(hcol_stmt, 13, internal_asis_type, attdef, len_needed + 1, &len_needed);
-mylog(" and the data=%s\n", attdef);
+			PGAPI_GetData(col_stmt, 13, internal_asis_type, attdef, len_needed + 1, &len_needed);
+MYLOG(0, " and the data=%s\n", attdef);
 		}
 		tuple = QR_AddNew(res);
 
@@ -2612,8 +2630,9 @@ mylog(" and the data=%s\n", attdef);
 				}
 			case PG_TYPE_INT4:
 			case PG_TYPE_INT8:
-				if (attdef && strnicmp(attdef, "nextval(", 8) == 0 &&
-				    not_null[0] != '0')
+				if (attidentity[0] != 0 ||
+				    (attdef && strnicmp(attdef, "nextval(", 8) == 0 &&
+				     not_null[0] != '0'))
 				{
 					auto_unique = SQL_TRUE;
 					if (!setIdentity &&
@@ -2644,8 +2663,8 @@ mylog(" and the data=%s\n", attdef);
 		 *
 		 *----------
 		 */
-		qlog("%s: table='%s',field_name='%s',type=%d,name='%s'\n",
-			 func, table_name, field_name, field_type, field_type_name);
+		MYLOG(0, "table='%s',field_name='%s',type=%d,name='%s'\n",
+			 table_name, field_name, field_type, field_type_name);
 
 		/* Subtract the header length */
 		switch (field_type)
@@ -2690,7 +2709,7 @@ mylog(" and the data=%s\n", attdef);
 		set_tuplefield_int4(&tuple[COLUMNS_ATTTYPMOD], mod_length);
 		ordinal++;
 
-		result = PGAPI_Fetch(hcol_stmt);
+		result = PGAPI_Fetch(col_stmt);
 		if (attdef)
 			free(attdef);
 	}
@@ -2714,7 +2733,7 @@ mylog(" and the data=%s\n", attdef);
 		add_tuple_for_oid_or_xmin(tuple, ordinal, XMIN_NAME, PG_TYPE_XID, "xid", conn, table_owner, table_name, greloid, XMIN_ATTNUM, FALSE);
 		ordinal++;
 	}
-	result = SQL_SUCCESS;
+	ret = SQL_SUCCESS;
 
 cleanup:
 #undef	return
@@ -2725,21 +2744,25 @@ cleanup:
 	stmt->status = STMT_FINISHED;
 	stmt->catalog_result = TRUE;
 
+	if (!SQL_SUCCEEDED(ret) && 0 >= SC_get_errornumber(stmt))
+		SC_error_copy(stmt, col_stmt, TRUE);
 	/* set up the current tuple pointer for SQLFetch */
 	stmt->currTuple = -1;
 	SC_set_rowset_start(stmt, -1, FALSE);
 	SC_set_current_col(stmt, -1);
 
+	if (!PQExpBufferDataBroken(columns_query))
+		termPQExpBuffer(&columns_query);
 	if (escSchemaName)
 		free(escSchemaName);
 	if (escTableName)
 		free(escTableName);
 	if (escColumnName)
 		free(escColumnName);
-	if (hcol_stmt)
-		PGAPI_FreeStmt(hcol_stmt, SQL_DROP);
-	mylog("%s: EXIT,  stmt=%p\n", func, stmt);
-	return result;
+	if (col_stmt)
+		PGAPI_FreeStmt(col_stmt, SQL_DROP);
+	MYLOG(0, "leaving stmt=%p\n", stmt);
+	return ret;
 }
 
 
@@ -2760,11 +2783,10 @@ PGAPI_SpecialColumns(HSTMT hstmt,
 	StatementClass *stmt = (StatementClass *) hstmt;
 	ConnectionClass *conn;
 	QResultClass	*res;
-	HSTMT		hcol_stmt = NULL;
-	StatementClass *col_stmt;
-	char		columns_query[INFO_INQUIRY_LEN];
+	StatementClass *col_stmt = NULL;
+	PQExpBufferData		columns_query = {0};
 	char		*escSchemaName = NULL, *escTableName = NULL;
-	RETCODE		result = SQL_SUCCESS;
+	RETCODE		ret = SQL_ERROR, result;
 	char		relhasrules[MAX_INFO_STRING], relkind[8], relhasoids[8];
 	BOOL		relisaview;
 	SQLSMALLINT	internal_asis_type = SQL_C_CHAR, cbSchemaName;
@@ -2772,7 +2794,7 @@ PGAPI_SpecialColumns(HSTMT hstmt,
 	const char *eq_string;
 	int		result_cols;
 
-	mylog("%s: entering...stmt=%p scnm=%p len=%d colType=%d scope=%d\n", func, stmt, szTableOwner, cbTableOwner, fColType, fScope);
+	MYLOG(0, "entering...stmt=%p scnm=%p len=%d colType=%d scope=%d\n", stmt, szTableOwner, cbTableOwner, fColType, fScope);
 
 	if (result = SC_initialize_and_recycle(stmt), SQL_SUCCESS != result)
 		return result;
@@ -2798,37 +2820,41 @@ retry_public_schema:
 		free(escSchemaName);
 	escSchemaName = simpleCatalogEscape(szSchemaName, cbSchemaName, conn);
 	eq_string = gen_opestr(eqop, conn);
+	initPQExpBuffer(&columns_query);
+#define	return	DONT_CALL_RETURN_FROM_HERE???
 	/*
 	 * Create the query to find out if this is a view or not...
 	 */
-	STRCPY_FIXED(columns_query, "select c.relhasrules, c.relkind, c.relhasoids");
-	STRCAT_FIXED(columns_query, " from pg_catalog.pg_namespace u,"
+	appendPQExpBufferStr(&columns_query, "select c.relhasrules, c.relkind, c.relhasoids");
+	appendPQExpBufferStr(&columns_query, " from pg_catalog.pg_namespace u,"
 					" pg_catalog.pg_class c where "
 					"u.oid = c.relnamespace");
 
 	/* TableName cannot contain a string search pattern */
 	if (escTableName)
-		SPRINTFCAT_FIXED(columns_query,
+		appendPQExpBuffer(&columns_query,
 					 " and c.relname %s'%s'", eq_string, escTableName);
 	/* SchemaName cannot contain a string search pattern */
-	schema_strcat1(columns_query, sizeof(columns_query), " and u.nspname %s'%.*s'", eq_string, escSchemaName, szTableName, cbTableName, conn);
+	schema_appendPQExpBuffer1(&columns_query, " and u.nspname %s'%.*s'", eq_string, escSchemaName, TABLE_IS_VALID(szTableName, cbTableName), conn);
 
-	result = PGAPI_AllocStmt(conn, &hcol_stmt, 0);
+	result = PGAPI_AllocStmt(conn, (HSTMT *) &col_stmt, 0);
 	if (!SQL_SUCCEEDED(result))
 	{
 		SC_set_error(stmt, STMT_NO_MEMORY_ERROR, "Couldn't allocate statement for SQLSpecialColumns result.", func);
-		result = SQL_ERROR;
 		goto cleanup;
 	}
-	col_stmt = (StatementClass *) hcol_stmt;
 
-	mylog("%s: hcol_stmt = %p, col_stmt = %p\n", func, hcol_stmt, col_stmt);
+	MYLOG(0, "col_stmt = %p\n", col_stmt);
 
-	result = PGAPI_ExecDirect(hcol_stmt, (SQLCHAR *) columns_query, SQL_NTS, PODBC_RDONLY);
+	if (PQExpBufferDataBroken(columns_query))
+	{
+		SC_set_error(stmt, STMT_NO_MEMORY_ERROR, "Out of memory in PGAPI_SpecialColumns()", func);
+		goto cleanup;
+	}
+	result = PGAPI_ExecDirect(col_stmt, (SQLCHAR *) columns_query.data, SQL_NTS, PODBC_RDONLY);
 	if (!SQL_SUCCEEDED(result))
 	{
 		SC_full_error_copy(stmt, col_stmt, FALSE);
-		result = SQL_ERROR;
 		goto cleanup;
 	}
 
@@ -2838,51 +2864,44 @@ retry_public_schema:
 	{
 		if (allow_public_schema(conn, szSchemaName, cbSchemaName))
 		{
-			PGAPI_FreeStmt(hcol_stmt, SQL_DROP);
-			hcol_stmt = NULL;
+			PGAPI_FreeStmt(col_stmt, SQL_DROP);
+			col_stmt = NULL;
 			szSchemaName = pubstr;
 			cbSchemaName = SQL_NTS;
 			goto retry_public_schema;
 		}
 	}
 
-	result = PGAPI_BindCol(hcol_stmt, 1, internal_asis_type,
+	result = PGAPI_BindCol(col_stmt, 1, internal_asis_type,
 					relhasrules, sizeof(relhasrules), NULL);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, col_stmt, TRUE);
-		result = SQL_ERROR;
 		goto cleanup;
 	}
 
-	result = PGAPI_BindCol(hcol_stmt, 2, internal_asis_type,
+	result = PGAPI_BindCol(col_stmt, 2, internal_asis_type,
 					relkind, sizeof(relkind), NULL);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, col_stmt, TRUE);
-		result = SQL_ERROR;
 		goto cleanup;
 	}
 	relhasoids[0] = '1';
-	result = PGAPI_BindCol(hcol_stmt, 3, internal_asis_type,
+	result = PGAPI_BindCol(col_stmt, 3, internal_asis_type,
 				relhasoids, sizeof(relhasoids), NULL);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, col_stmt, TRUE);
-		result = SQL_ERROR;
 		goto cleanup;
 	}
 
-	result = PGAPI_Fetch(hcol_stmt);
+	result = PGAPI_Fetch(col_stmt);
 	relisaview = (relkind[0] == 'v');
-	PGAPI_FreeStmt(hcol_stmt, SQL_DROP);
-	hcol_stmt = NULL;
+	PGAPI_FreeStmt(col_stmt, SQL_DROP);
+	col_stmt = NULL;
 
 	res = QR_Constructor();
 	if (!res)
 	{
 		SC_set_error(stmt, STMT_NO_MEMORY_ERROR, "Couldn't allocate memory for query.", func);
-		result = SQL_ERROR;
 		goto cleanup;
 	}
 	SC_set_Result(stmt, res);
@@ -2905,6 +2924,7 @@ retry_public_schema:
 		/* there's no oid for views */
 		if (fColType == SQL_BEST_ROWID)
 		{
+			ret = SQL_SUCCESS;
 			goto cleanup;
 		}
 		else if (fColType == SQL_ROWVER)
@@ -2922,7 +2942,7 @@ retry_public_schema:
 			set_tuplefield_int4(&tuple[SPECOLS_BUFFER_LENGTH], PGTYPE_ATTR_BUFFER_LENGTH(conn, the_type, atttypmod));
 			set_tuplefield_int2(&tuple[SPECOLS_DECIMAL_DIGITS], PGTYPE_ATTR_DECIMAL_DIGITS(conn, the_type, atttypmod));
 			set_tuplefield_int2(&tuple[SPECOLS_PSEUDO_COLUMN], SQL_PC_NOT_PSEUDO);
-inolog("Add ctid\n");
+MYLOG(DETAIL_LOG_LEVEL, "Add ctid\n");
 		}
 	}
 	else
@@ -2935,6 +2955,7 @@ inolog("Add ctid\n");
 
 			if (relhasoids[0] != '1')
 			{
+				ret = SQL_SUCCESS;
 				goto cleanup;
 			}
 			tuple = QR_AddNew(res);
@@ -2965,9 +2986,14 @@ inolog("Add ctid\n");
 			set_tuplefield_int2(&tuple[SPECOLS_PSEUDO_COLUMN], SQL_PC_PSEUDO);
 		}
 	}
+	ret = SQL_SUCCESS;
 
 cleanup:
 #undef	return
+	if (!SQL_SUCCEEDED(ret) && 0 >= SC_get_errornumber(stmt))
+		SC_error_copy(stmt, col_stmt, TRUE);
+	if (!PQExpBufferDataBroken(columns_query))
+		termPQExpBuffer(&columns_query);
 	if (escSchemaName)
 		free(escSchemaName);
 	if (escTableName)
@@ -2976,10 +3002,10 @@ cleanup:
 	stmt->currTuple = -1;
 	SC_set_rowset_start(stmt, -1, FALSE);
 	SC_set_current_col(stmt, -1);
-	if (hcol_stmt)
-		PGAPI_FreeStmt(hcol_stmt, SQL_DROP);
-	mylog("%s: EXIT,  stmt=%p\n", func, stmt);
-	return result;
+	if (col_stmt)
+		PGAPI_FreeStmt(col_stmt, SQL_DROP);
+	MYLOG(0, "leaving  stmt=%p\n", stmt);
+	return ret;
 }
 
 
@@ -2999,8 +3025,7 @@ PGAPI_Statistics(HSTMT hstmt,
 	StatementClass *stmt = (StatementClass *) hstmt;
 	ConnectionClass *conn;
 	QResultClass	*res;
-	char		index_query[INFO_INQUIRY_LEN];
-	HSTMT		hcol_stmt = NULL, hindx_stmt = NULL;
+	PQExpBufferData		index_query = {0};
 	RETCODE		ret = SQL_ERROR, result;
 	char		*escSchemaName = NULL, *table_name = NULL, *escTableName = NULL;
 	char		index_name[MAX_INFO_STRING];
@@ -3012,8 +3037,7 @@ PGAPI_Statistics(HSTMT hstmt,
 	SQLLEN		index_name_len, fields_vector_len;
 	TupleField	*tuple;
 	int			i;
-	StatementClass *col_stmt,
-			   *indx_stmt;
+	StatementClass *col_stmt = NULL, *indx_stmt = NULL;
 	char		column_name[MAX_INFO_STRING],
 			table_schemaname[MAX_INFO_STRING],
 				relhasrules[10];
@@ -3032,7 +3056,7 @@ PGAPI_Statistics(HSTMT hstmt,
 	OID		ioid;
 	Int4		relhasoids;
 
-	mylog("%s: entering...stmt=%p scnm=%p len=%d\n", func, stmt, szTableOwner, cbTableOwner);
+	MYLOG(0, "entering...stmt=%p scnm=%p len=%d\n", stmt, szTableOwner, cbTableOwner);
 
 	if (result = SC_initialize_and_recycle(stmt), SQL_SUCCESS != result)
 		return result;
@@ -3088,25 +3112,23 @@ PGAPI_Statistics(HSTMT hstmt,
 	cbSchemaName = cbTableOwner;
 
 	table_schemaname[0] = '\0';
-	schema_strcat(table_schemaname, sizeof(table_schemaname), "%.*s", szSchemaName, cbSchemaName, szTableName, cbTableName, conn);
+	schema_str(table_schemaname, sizeof(table_schemaname), szSchemaName, cbSchemaName, TABLE_IS_VALID(szTableName, cbTableName), conn);
 
 	/*
 	 * we need to get a list of the field names first, so we can return
 	 * them later.
 	 */
-	result = PGAPI_AllocStmt(conn, &hcol_stmt, 0);
+	result = PGAPI_AllocStmt(conn, (HSTMT *) &col_stmt, 0);
 	if (!SQL_SUCCEEDED(result))
 	{
 		SC_set_error(stmt, STMT_NO_MEMORY_ERROR, "PGAPI_AllocStmt failed in PGAPI_Statistics for columns.", func);
 		goto cleanup;
 	}
 
-	col_stmt = (StatementClass *) hcol_stmt;
-
 	/*
 	 * table_name parameter cannot contain a string search pattern.
 	 */
-	result = PGAPI_Columns(hcol_stmt,
+	result = PGAPI_Columns(col_stmt,
 						   NULL, 0,
 						   (SQLCHAR *) table_schemaname, SQL_NTS,
 						   (SQLCHAR *) table_name, SQL_NTS,
@@ -3115,30 +3137,27 @@ PGAPI_Statistics(HSTMT hstmt,
 
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, col_stmt, TRUE);
 		goto cleanup;
 	}
-	result = PGAPI_BindCol(hcol_stmt, COLUMNS_COLUMN_NAME + 1, internal_asis_type,
+	result = PGAPI_BindCol(col_stmt, COLUMNS_COLUMN_NAME + 1, internal_asis_type,
 						 column_name, sizeof(column_name), &column_name_len);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, col_stmt, TRUE);
 		goto cleanup;
 	}
-	result = PGAPI_BindCol(hcol_stmt, COLUMNS_PHYSICAL_NUMBER + 1, SQL_C_SHORT,
+	result = PGAPI_BindCol(col_stmt, COLUMNS_PHYSICAL_NUMBER + 1, SQL_C_SHORT,
 			&field_number, sizeof(field_number), NULL);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, col_stmt, TRUE);
 		goto cleanup;
 	}
 
 	alcount = 0;
-	result = PGAPI_Fetch(hcol_stmt);
+	result = PGAPI_Fetch(col_stmt);
 	while (SQL_SUCCEEDED(result))
 	{
 		if (0 == total_columns)
-			PGAPI_GetData(hcol_stmt, 2, internal_asis_type, table_schemaname, sizeof(table_schemaname), NULL);
+			PGAPI_GetData(col_stmt, 2, internal_asis_type, table_schemaname, sizeof(table_schemaname), NULL);
 
 		if (total_columns >= alcount)
 		{
@@ -3152,15 +3171,14 @@ PGAPI_Statistics(HSTMT hstmt,
 		if (!column_names[total_columns].col_name)
 		{
 			SC_set_error(stmt, STMT_NO_MEMORY_ERROR, "Couldn't allocate memory for column name.", func);
-			result = SQL_ERROR;
 			goto cleanup;
 		}
 		column_names[total_columns].pnum = field_number;
 		total_columns++;
 
-		mylog("%s: column_name = '%s'\n", func, column_name);
+		MYLOG(0, "column_name = '%s'\n", column_name);
 
-		result = PGAPI_Fetch(hcol_stmt);
+		result = PGAPI_Fetch(col_stmt);
 	}
 
 	if (result != SQL_NO_DATA_FOUND)
@@ -3168,8 +3186,8 @@ PGAPI_Statistics(HSTMT hstmt,
 		SC_full_error_copy(stmt, col_stmt, FALSE);
 		goto cleanup;
 	}
-	PGAPI_FreeStmt(hcol_stmt, SQL_DROP);
-	hcol_stmt = NULL;
+	PGAPI_FreeStmt(col_stmt, SQL_DROP);
+	col_stmt = NULL;
 	if (total_columns == 0)
 	{
 		/* Couldn't get column names in SQLStatistics.; */
@@ -3178,20 +3196,20 @@ PGAPI_Statistics(HSTMT hstmt,
 	}
 
 	/* get a list of indexes on this table */
-	result = PGAPI_AllocStmt(conn, &hindx_stmt, 0);
+	result = PGAPI_AllocStmt(conn, (HSTMT *) &indx_stmt, 0);
 	if (!SQL_SUCCEEDED(result))
 	{
 		SC_set_error(stmt, STMT_NO_MEMORY_ERROR, "PGAPI_AllocStmt failed in SQLStatistics for indices.", func);
 		goto cleanup;
 
 	}
-	indx_stmt = (StatementClass *) hindx_stmt;
 
 	/* TableName cannot contain a string search pattern */
 	escTableName = simpleCatalogEscape((SQLCHAR *) table_name, SQL_NTS, conn);
 	eq_string = gen_opestr(eqop, conn);
 	escSchemaName = simpleCatalogEscape((SQLCHAR *) table_schemaname, SQL_NTS, conn);
-	SPRINTF_FIXED(index_query, "select c.relname, i.indkey, i.indisunique"
+	initPQExpBuffer(&index_query);
+	printfPQExpBuffer(&index_query, "select c.relname, i.indkey, i.indisunique"
 		", i.indisclustered, a.amname, c.relhasrules, n.nspname"
 		", c.oid, d.relhasoids, %s"
 		" from pg_catalog.pg_index i, pg_catalog.pg_class c,"
@@ -3205,10 +3223,15 @@ PGAPI_Statistics(HSTMT hstmt,
 		" and c.relam = a.oid order by"
 		, PG_VERSION_GE(conn, 8.3) ? "i.indoption" : "0"
 		, eq_string, escTableName, eq_string, escSchemaName);
-	STRCAT_FIXED(index_query, " i.indisprimary desc,");
-	STRCAT_FIXED(index_query, " i.indisunique, n.nspname, c.relname");
+	appendPQExpBufferStr(&index_query, " i.indisprimary desc,");
+	appendPQExpBufferStr(&index_query, " i.indisunique, n.nspname, c.relname");
+	if (PQExpBufferDataBroken(index_query))
+	{
+		SC_set_error(stmt, STMT_NO_MEMORY_ERROR, "Out of memory in PGAPI_Columns()", func);
+		goto cleanup;
+	}
 
-	result = PGAPI_ExecDirect(hindx_stmt, (SQLCHAR *) index_query, SQL_NTS, PODBC_RDONLY);
+	result = PGAPI_ExecDirect(indx_stmt, (SQLCHAR *) index_query.data, SQL_NTS, PODBC_RDONLY);
 	if (!SQL_SUCCEEDED(result))
 	{
 		/*
@@ -3220,94 +3243,79 @@ PGAPI_Statistics(HSTMT hstmt,
 	}
 
 	/* bind the index name column */
-	result = PGAPI_BindCol(hindx_stmt, 1, internal_asis_type,
+	result = PGAPI_BindCol(indx_stmt, 1, internal_asis_type,
 						   index_name, MAX_INFO_STRING, &index_name_len);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, indx_stmt, TRUE);	/* "Couldn't bind column
-						* in SQLStatistics."; */
 		goto cleanup;
 
 	}
 	/* bind the vector column */
-	result = PGAPI_BindCol(hindx_stmt, 2, SQL_C_DEFAULT,
+	result = PGAPI_BindCol(indx_stmt, 2, SQL_C_DEFAULT,
 			fields_vector, sizeof(fields_vector), &fields_vector_len);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, indx_stmt, TRUE); /* "Couldn't bind column
-						 * in SQLStatistics."; */
 		goto cleanup;
 
 	}
 	/* bind the "is unique" column */
-	result = PGAPI_BindCol(hindx_stmt, 3, internal_asis_type,
+	result = PGAPI_BindCol(indx_stmt, 3, internal_asis_type,
 						   isunique, sizeof(isunique), NULL);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, indx_stmt, TRUE);	/* "Couldn't bind column
-						 * in SQLStatistics."; */
 		goto cleanup;
 	}
 
 	/* bind the "is clustered" column */
-	result = PGAPI_BindCol(hindx_stmt, 4, internal_asis_type,
+	result = PGAPI_BindCol(indx_stmt, 4, internal_asis_type,
 						   isclustered, sizeof(isclustered), NULL);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, indx_stmt, TRUE);	/* "Couldn't bind column *
-						 * in SQLStatistics."; */
 		goto cleanup;
 
 	}
 
 	/* bind the "is hash" column */
-	result = PGAPI_BindCol(hindx_stmt, 5, internal_asis_type,
+	result = PGAPI_BindCol(indx_stmt, 5, internal_asis_type,
 						   ishash, sizeof(ishash), NULL);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, indx_stmt, TRUE);	/* "Couldn't bind column *
-						 * in SQLStatistics."; */
 		goto cleanup;
 
 	}
 
-	result = PGAPI_BindCol(hindx_stmt, 6, internal_asis_type,
+	result = PGAPI_BindCol(indx_stmt, 6, internal_asis_type,
 					relhasrules, sizeof(relhasrules), NULL);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, indx_stmt, TRUE);
 		goto cleanup;
 	}
 
-	result = PGAPI_BindCol(hindx_stmt, 8, SQL_C_ULONG,
+	result = PGAPI_BindCol(indx_stmt, 8, SQL_C_ULONG,
 					&ioid, sizeof(ioid), NULL);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, indx_stmt, TRUE);
 		goto cleanup;
 	}
 
-	result = PGAPI_BindCol(hindx_stmt, 9, SQL_C_ULONG,
+	result = PGAPI_BindCol(indx_stmt, 9, SQL_C_ULONG,
 					&relhasoids, sizeof(relhasoids), NULL);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, indx_stmt, TRUE);
 		goto cleanup;
 	}
 
 	/* bind the vector column */
-	result = PGAPI_BindCol(hindx_stmt, 10, SQL_C_DEFAULT,
+	result = PGAPI_BindCol(indx_stmt, 10, SQL_C_DEFAULT,
 			indopt_vector, sizeof(fields_vector), &fields_vector_len);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, indx_stmt, TRUE); /* "Couldn't bind column
-						 * in SQLStatistics."; */
 		goto cleanup;
 
 	}
 
 	relhasrules[0] = '0';
-	result = PGAPI_Fetch(hindx_stmt);
+	result = PGAPI_Fetch(indx_stmt);
 	/* fake index of OID */
 	if (relhasoids && relhasrules[0] != '1' && atoi(ci->show_oid_column) && atoi(ci->fake_oid_index))
 	{
@@ -3383,7 +3391,7 @@ PGAPI_Statistics(HSTMT hstmt,
 				if (OID_ATTNUM == attnum)
 				{
 					set_tuplefield_string(&tuple[STATS_COLUMN_NAME], OID_NAME);
-					mylog("%s: column name = oid\n", func);
+					MYLOG(0, "column name = oid\n");
 				}
 				else if (0 == attnum)
 				{
@@ -3417,12 +3425,12 @@ PGAPI_Statistics(HSTMT hstmt,
 					if (unknownf)
 					{
 						set_tuplefield_string(&tuple[STATS_COLUMN_NAME], "UNKNOWN");
-						mylog("%s: column name = UNKNOWN\n", func);
+						MYLOG(0, "column name = UNKNOWN\n");
 					}
 					else
 					{
 						set_tuplefield_string(&tuple[STATS_COLUMN_NAME], column_names[matchidx].col_name);
-						mylog("%s: column name = '%s'\n", func, column_names[matchidx].col_name);
+						MYLOG(0, "column name = '%s'\n", column_names[matchidx].col_name);
 					}
 				}
 
@@ -3437,7 +3445,7 @@ PGAPI_Statistics(HSTMT hstmt,
 			}
 		}
 
-		result = PGAPI_Fetch(hindx_stmt);
+		result = PGAPI_Fetch(indx_stmt);
 	}
 	if (result != SQL_NO_DATA_FOUND)
 	{
@@ -3455,11 +3463,20 @@ cleanup:
 	 */
 	stmt->status = STMT_FINISHED;
 
-	if (hcol_stmt)
-		PGAPI_FreeStmt(hcol_stmt, SQL_DROP);
-	if (hindx_stmt)
-		PGAPI_FreeStmt(hindx_stmt, SQL_DROP);
+	if (!SQL_SUCCEEDED(ret) && 0 >= SC_get_errornumber(stmt))
+	{
+		SC_error_copy(stmt, col_stmt, TRUE);
+		if (0 >= SC_get_errornumber(stmt))
+			SC_error_copy(stmt, indx_stmt, TRUE);
+	}
+
+	if (col_stmt)
+		PGAPI_FreeStmt(col_stmt, SQL_DROP);
+	if (indx_stmt)
+		PGAPI_FreeStmt(indx_stmt, SQL_DROP);
 	/* These things should be freed on any error ALSO! */
+	if (!PQExpBufferDataBroken(index_query))
+		termPQExpBuffer(&index_query);
 	if (table_name)
 		free(table_name);
 	if (escTableName)
@@ -3478,7 +3495,7 @@ cleanup:
 	SC_set_rowset_start(stmt, -1, FALSE);
 	SC_set_current_col(stmt, -1);
 
-	mylog("%s: EXIT, stmt=%p, ret=%d\n", func, stmt, ret);
+	MYLOG(0, "leaving stmt=%p, ret=%d\n", stmt, ret);
 
 	return ret;
 }
@@ -3499,16 +3516,14 @@ PGAPI_ColumnPrivileges(HSTMT hstmt,
 	CSTR func = "PGAPI_ColumnPrivileges";
 	StatementClass	*stmt = (StatementClass *) hstmt;
 	ConnectionClass	*conn = SC_get_conn(stmt);
-	RETCODE	result = SQL_ERROR;
+	RETCODE	ret = SQL_ERROR;
 	char	*escSchemaName = NULL, *escTableName = NULL, *escColumnName = NULL;
 	const char	*like_or_eq, *op_string, *eq_string;
-	char	column_query[INFO_INQUIRY_LEN];
-	size_t		cq_len,cq_size;
-	char		*col_query;
+	PQExpBufferData	column_query = {0};
 	BOOL	search_pattern;
 	QResultClass	*res = NULL;
 
-	mylog("%s: entering...\n", func);
+	MYLOG(0, "entering...\n");
 
 	/* Neither Access or Borland care about this. */
 
@@ -3527,37 +3542,29 @@ PGAPI_ColumnPrivileges(HSTMT hstmt,
 		like_or_eq = eqop;
 		escColumnName = simpleCatalogEscape(szColumnName, cbColumnName, conn);
 	}
-	STRCPY_FIXED(column_query, "select '' as TABLE_CAT, table_schema as TABLE_SCHEM,"
+	initPQExpBuffer(&column_query);
+#define	return	DONT_CALL_RETURN_FROM_HERE???
+	appendPQExpBufferStr(&column_query, "select '' as TABLE_CAT, table_schema as TABLE_SCHEM,"
 			" table_name, column_name, grantor, grantee,"
 			" privilege_type as PRIVILEGE, is_grantable from"
 			" information_schema.column_privileges where true");
-	cq_len = strlen(column_query);
+	/* cq_len = strlen(column_query);
 	cq_size = sizeof(column_query);
-	col_query = column_query;
+	col_query = column_query; */
 	op_string = gen_opestr(like_or_eq, conn);
 	eq_string = gen_opestr(eqop, conn);
 	if (escSchemaName)
-	{
-		col_query += cq_len;
-		cq_size -= cq_len;
-		cq_len = snprintf_len(col_query, cq_size,
-			" and table_schem %s'%s'", eq_string, escSchemaName);
-	}
+		appendPQExpBuffer(&column_query, " and table_schem %s'%s'", eq_string, escSchemaName);
 	if (escTableName)
-	{
-		col_query += cq_len;
-		cq_size -= cq_len;
-		cq_len += snprintf_len(col_query, cq_size,
-			" and table_name %s'%s'", eq_string, escTableName);
-	}
+		appendPQExpBuffer(&column_query, " and table_name %s'%s'", eq_string, escTableName);
 	if (escColumnName)
+		appendPQExpBuffer(&column_query, " and column_name %s'%s'", op_string, escColumnName);
+	if (PQExpBufferDataBroken(column_query))
 	{
-		col_query += cq_len;
-		cq_size -= cq_len;
-		cq_len += snprintf_len(col_query, cq_size,
-			" and column_name %s'%s'", op_string, escColumnName);
+		SC_set_error(stmt, STMT_NO_MEMORY_ERROR, "Out of memory in PGAPI_ColumnPriviles()", func);
+		goto cleanup;
 	}
-	if (res = CC_send_query(conn, column_query, NULL, READ_ONLY_QUERY, stmt), !QR_command_maybe_successful(res))
+	if (res = CC_send_query(conn, column_query.data, NULL, READ_ONLY_QUERY, stmt), !QR_command_maybe_successful(res))
 	{
 		SC_set_error(stmt, STMT_EXEC_ERROR, "PGAPI_ColumnPrivileges query error", func);
 		goto cleanup;
@@ -3570,21 +3577,24 @@ PGAPI_ColumnPrivileges(HSTMT hstmt,
 	 */
 	extend_column_bindings(SC_get_ARDF(stmt), 8);
 	/* set up the current tuple pointer for SQLFetch */
-	result = SQL_SUCCESS;
+	ret = SQL_SUCCESS;
 cleanup:
-	if (!SQL_SUCCEEDED(result))
+#undef return
+	if (!SQL_SUCCEEDED(ret))
 		QR_Destructor(res);
 	/* set up the current tuple pointer for SQLFetch */
 	stmt->status = STMT_FINISHED;
 	stmt->currTuple = -1;
 	SC_set_rowset_start(stmt, -1, FALSE);
+	if (!PQExpBufferDataBroken(column_query))
+		termPQExpBuffer(&column_query);
 	if (escSchemaName)
 		free(escSchemaName);
 	if (escTableName)
 		free(escTableName);
 	if (escColumnName)
 		free(escColumnName);
-	return result;
+	return ret;
 }
 
 
@@ -3608,11 +3618,10 @@ PGAPI_PrimaryKeys(HSTMT hstmt,
 	QResultClass	*res;
 	ConnectionClass *conn;
 	TupleField	*tuple;
-	RETCODE		ret = SQL_SUCCESS, result;
+	RETCODE		ret = SQL_ERROR, result;
 	int			seq = 0;
-	HSTMT		htbl_stmt = NULL;
-	StatementClass *tbl_stmt;
-	char		tables_query[INFO_INQUIRY_LEN];
+	StatementClass *tbl_stmt = NULL;
+	PQExpBufferData		tables_query = {0};
 	char		attname[MAX_INFO_STRING];
 	SQLLEN		attname_len;
 	char		*pktab = NULL, *pktbname;
@@ -3630,7 +3639,7 @@ PGAPI_PrimaryKeys(HSTMT hstmt,
 	const char *eq_string;
 	char	*escSchemaName = NULL, *escTableName = NULL;
 
-	mylog("%s: entering...stmt=%p scnm=%p len=%d\n", func, stmt, szTableOwner, cbTableOwner);
+	MYLOG(0, "entering...stmt=%p scnm=%p len=%d\n", stmt, szTableOwner, cbTableOwner);
 
 	if (result = SC_initialize_and_recycle(stmt), SQL_SUCCESS != result)
 		return result;
@@ -3661,14 +3670,12 @@ PGAPI_PrimaryKeys(HSTMT hstmt,
 	QR_set_field_info_v(res, PKS_PK_NAME, "PK_NAME", PG_TYPE_VARCHAR, MAX_INFO_STRING);
 
 	conn = SC_get_conn(stmt);
-	result = PGAPI_AllocStmt(conn, &htbl_stmt, 0);
+	result = PGAPI_AllocStmt(conn, (HSTMT *) &tbl_stmt, 0);
 	if (!SQL_SUCCEEDED(result))
 	{
 		SC_set_error(stmt, STMT_NO_MEMORY_ERROR, "Couldn't allocate statement for Primary Key result.", func);
-		ret = SQL_ERROR;
 		goto cleanup;
 	}
-	tbl_stmt = (StatementClass *) htbl_stmt;
 
 #ifdef	UNICODE_SUPPORT
 	if (CC_is_in_unicode_driver(conn))
@@ -3687,7 +3694,6 @@ PGAPI_PrimaryKeys(HSTMT hstmt,
 		if (!pktab || pktab[0] == '\0')
 		{
 			SC_set_error(stmt, STMT_INTERNAL_ERROR, "No Table specified to PGAPI_PrimaryKeys.", func);
-			ret = SQL_ERROR;
 			goto cleanup;
 		}
 		szSchemaName = szTableOwner;
@@ -3703,42 +3709,35 @@ retry_public_schema:
 		if (escSchemaName)
 			free(escSchemaName);
 		escSchemaName = simpleCatalogEscape(szSchemaName, cbSchemaName, conn);
-		schema_strcat(pkscm, sizeof(pkscm), "%.*s", (SQLCHAR *) escSchemaName, SQL_NTS, szTableName, cbTableName, conn);
+		schema_str(pkscm, sizeof(pkscm), (SQLCHAR *) escSchemaName, SQL_NTS, TABLE_IS_VALID(szTableName, cbTableName), conn);
 	}
 
-	result = PGAPI_BindCol(htbl_stmt, 1, internal_asis_type,
+	result = PGAPI_BindCol(tbl_stmt, 1, internal_asis_type,
 						   attname, MAX_INFO_STRING, &attname_len);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, tbl_stmt, TRUE);
-		ret = SQL_ERROR;
 		goto cleanup;
 	}
-	result = PGAPI_BindCol(htbl_stmt, 3, internal_asis_type,
+	result = PGAPI_BindCol(tbl_stmt, 3, internal_asis_type,
 			pkname, TABLE_NAME_STORAGE_LEN, NULL);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, tbl_stmt, TRUE);
-		ret = SQL_ERROR;
 		goto cleanup;
 	}
-	result = PGAPI_BindCol(htbl_stmt, 4, internal_asis_type,
+	result = PGAPI_BindCol(tbl_stmt, 4, internal_asis_type,
 			pkscm, SCHEMA_NAME_STORAGE_LEN, &pkscm_len);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, tbl_stmt, TRUE);
-		ret = SQL_ERROR;
 		goto cleanup;
 	}
-	result = PGAPI_BindCol(htbl_stmt, 5, internal_asis_type,
+	result = PGAPI_BindCol(tbl_stmt, 5, internal_asis_type,
 			tabname, TABLE_NAME_STORAGE_LEN, &tabname_len);
 	if (!SQL_SUCCEEDED(result))
 	{
-		SC_error_copy(stmt, tbl_stmt, TRUE);
-		ret = SQL_ERROR;
 		goto cleanup;
 	}
 
+	initPQExpBuffer(&tables_query);
 	qstart = 1;
 	if (0 == reloid)
 		qend = 2;
@@ -3746,9 +3745,7 @@ retry_public_schema:
 		qend = 1;
 	for (qno = qstart; qno <= qend; qno++)
 	{
-		size_t	qsize, tsize;
-		char	*tbqry;
-
+		resetPQExpBuffer(&tables_query);
 		switch (qno)
 		{
 			case 1:
@@ -3758,24 +3755,21 @@ retry_public_schema:
 				 * possible index columns. Courtesy of Tom Lane - thomas
 				 * 2000-03-21
 				 */
-				STRCPY_FIXED(tables_query,
+				appendPQExpBufferStr(&tables_query,
 					"select ta.attname, ia.attnum, ic.relname, n.nspname, tc.relname"
 					" from pg_catalog.pg_attribute ta,"
 					" pg_catalog.pg_attribute ia, pg_catalog.pg_class tc,"
 					" pg_catalog.pg_index i, pg_catalog.pg_namespace n"
 					", pg_catalog.pg_class ic");
-				qsize = strlen(tables_query);
-				tsize = sizeof(tables_query) - qsize;
-				tbqry = tables_query + qsize;
 				if (0 == reloid)
-					snprintf(tbqry, tsize,
+					appendPQExpBuffer(&tables_query,
 					" where tc.relname %s'%s'"
 					" AND n.nspname %s'%s'"
 					, eq_string, escTableName, eq_string, pkscm);
 				else
-					snprintf(tbqry, tsize, " where tc.oid = %u", reloid);
+					appendPQExpBuffer(&tables_query, " where tc.oid = %u", reloid);
 
-				STRCAT_FIXED(tables_query,
+				appendPQExpBufferStr(&tables_query,
 					" AND tc.oid = i.indrelid"
 					" AND n.oid = tc.relnamespace"
 					" AND i.indisprimary = 't'"
@@ -3792,7 +3786,7 @@ retry_public_schema:
 				/*
 				 * Simplified query to search old fashoned primary key
 				 */
-				SPRINTF_FIXED(tables_query, "select ta.attname, ia.attnum, ic.relname, n.nspname, NULL"
+				appendPQExpBuffer(&tables_query, "select ta.attname, ia.attnum, ic.relname, n.nspname, NULL"
 					" from pg_catalog.pg_attribute ta,"
 					" pg_catalog.pg_attribute ia, pg_catalog.pg_class ic,"
 					" pg_catalog.pg_index i, pg_catalog.pg_namespace n"
@@ -3808,17 +3802,21 @@ retry_public_schema:
 					" order by ia.attnum", eq_string, escTableName, eq_string, pkscm);
 				break;
 		}
-		mylog("%s: tables_query='%s'\n", func, tables_query);
+		if (PQExpBufferDataBroken(tables_query))
+		{
+			SC_set_error(stmt, STMT_NO_MEMORY_ERROR, "Out of memory in PGAPI_PrimaryKeys()", func);
+			goto cleanup;
+		}
+		MYLOG(0, "tables_query='%s'\n", tables_query.data);
 
-		result = PGAPI_ExecDirect(htbl_stmt, (SQLCHAR *) tables_query, SQL_NTS, PODBC_RDONLY);
+		result = PGAPI_ExecDirect(tbl_stmt, (SQLCHAR *) tables_query.data, SQL_NTS, PODBC_RDONLY);
 		if (!SQL_SUCCEEDED(result))
 		{
 			SC_full_error_copy(stmt, tbl_stmt, FALSE);
-			ret = SQL_ERROR;
 			goto cleanup;
 		}
 
-		result = PGAPI_Fetch(htbl_stmt);
+		result = PGAPI_Fetch(tbl_stmt);
 		if (result != SQL_NO_DATA_FOUND)
 			break;
 	}
@@ -3858,15 +3856,14 @@ retry_public_schema:
 		set_tuplefield_int2(&tuple[PKS_KEY_SQ], (Int2) (++seq));
 		set_tuplefield_string(&tuple[PKS_PK_NAME], pkname);
 
-		mylog(">> primaryKeys: schema ='%s', pktab = '%s', attname = '%s', seq = %d\n", pkscm, pktbname, attname, seq);
+		MYLOG(0, ">> primaryKeys: schema ='%s', pktab = '%s', attname = '%s', seq = %d\n", pkscm, pktbname, attname, seq);
 
-		result = PGAPI_Fetch(htbl_stmt);
+		result = PGAPI_Fetch(tbl_stmt);
 	}
 
 	if (result != SQL_NO_DATA_FOUND)
 	{
-		SC_full_error_copy(stmt, htbl_stmt, FALSE);
-		ret = SQL_ERROR;
+		SC_full_error_copy(stmt, tbl_stmt, FALSE);
 		goto cleanup;
 	}
 	ret = SQL_SUCCESS;
@@ -3879,9 +3876,14 @@ cleanup:
 	 */
 	stmt->status = STMT_FINISHED;
 
-	if (htbl_stmt)
-		PGAPI_FreeStmt(htbl_stmt, SQL_DROP);
+	if (!SQL_SUCCEEDED(ret) && 0 >= SC_get_errornumber(stmt))
+		SC_error_copy(stmt, tbl_stmt, TRUE);
 
+	if (tbl_stmt)
+		PGAPI_FreeStmt(tbl_stmt, SQL_DROP);
+
+	if (!PQExpBufferDataBroken(tables_query))
+		termPQExpBuffer(&tables_query);
 	if (pktab)
 		free(pktab);
 	if (escSchemaName)
@@ -3893,7 +3895,7 @@ cleanup:
 	SC_set_rowset_start(stmt, -1, FALSE);
 	SC_set_current_col(stmt, -1);
 
-	mylog("%s: EXIT, stmt=%p, ret=%d\n", func, stmt, ret);
+	MYLOG(0, "leaving stmt=%p, ret=%d\n", stmt, ret);
 	return ret;
 }
 
@@ -4021,10 +4023,10 @@ PGAPI_ForeignKeys_old(HSTMT hstmt,
 	StatementClass *stmt = (StatementClass *) hstmt;
 	QResultClass	*res;
 	TupleField	*tuple;
-	HSTMT		htbl_stmt = NULL, hpkey_stmt = NULL;
-	StatementClass *tbl_stmt;
+	HSTMT		hpkey_stmt = NULL;
+	StatementClass *tbl_stmt = NULL;
 	RETCODE		ret = SQL_ERROR, result, keyresult;
-	char		tables_query[INFO_INQUIRY_LEN];
+	PQExpBufferData		tables_query = {0};
 	char		trig_deferrable[2];
 	char		trig_initdeferred[2];
 	char		trig_args[1024];
@@ -4059,7 +4061,7 @@ PGAPI_ForeignKeys_old(HSTMT hstmt,
 	UInt4		relid1, relid2;
 	const char *eq_string;
 
-	mylog("%s: entering...stmt=%p\n", func, stmt);
+	MYLOG(0, "entering...stmt=%p\n", stmt);
 
 	if (result = SC_initialize_and_recycle(stmt), SQL_SUCCESS != result)
 		return result;
@@ -4111,7 +4113,7 @@ PGAPI_ForeignKeys_old(HSTMT hstmt,
 	SC_set_current_col(stmt, -1);
 
 	conn = SC_get_conn(stmt);
-	result = PGAPI_AllocStmt(conn, &htbl_stmt, 0);
+	result = PGAPI_AllocStmt(conn, (HSTMT *) &tbl_stmt, 0);
 	if (!SQL_SUCCEEDED(result))
 	{
 		SC_set_error(stmt, STMT_NO_MEMORY_ERROR, "Couldn't allocate statement for PGAPI_ForeignKeys result.", func);
@@ -4120,7 +4122,6 @@ PGAPI_ForeignKeys_old(HSTMT hstmt,
 
 #define	return	DONT_CALL_RETURN_FROM_HERE???
 
-	tbl_stmt = (StatementClass *) htbl_stmt;
 	schema_needed[0] = '\0';
 	schema_fetched[0] = '\0';
 
@@ -4134,6 +4135,7 @@ PGAPI_ForeignKeys_old(HSTMT hstmt,
 	pkey_alloced = fkey_alloced = FALSE;
 
 	eq_string = gen_opestr(eqop, conn);
+	initPQExpBuffer(&tables_query);
 	/*
 	 * Case #2 -- Get the foreign keys in the specified table (fktab) that
 	 * refer to the primary keys of other table(s).
@@ -4142,11 +4144,11 @@ PGAPI_ForeignKeys_old(HSTMT hstmt,
 	{
 		char    *escSchemaName;
 
-		mylog("%s: entering Foreign Key Case #2", func);
+		MYLOG(0, " Foreign Key Case #2\n");
 		escFkTableName = simpleCatalogEscape((SQLCHAR *) fk_table_needed, SQL_NTS, conn);
-		schema_strcat(schema_needed, sizeof(schema_needed), "%.*s", szFkTableOwner, cbFkTableOwner, szFkTableName, cbFkTableName, conn);
+		schema_str(schema_needed, sizeof(schema_needed), szFkTableOwner, cbFkTableOwner, TABLE_IS_VALID(szFkTableName, cbFkTableName), conn);
 		escSchemaName = simpleCatalogEscape((SQLCHAR *) schema_needed, SQL_NTS, conn);
-		SPRINTF_FIXED(tables_query, "SELECT	pt.tgargs, "
+		printfPQExpBuffer(&tables_query, "SELECT	pt.tgargs, "
 			"		pt.tgnargs, "
 			"		pt.tgdeferrable, "
 			"		pt.tginitdeferred, "
@@ -4188,8 +4190,13 @@ PGAPI_ForeignKeys_old(HSTMT hstmt,
 			" order by pt.tgconstrname",
 			eq_string, escFkTableName, eq_string, escSchemaName);
 		free(escSchemaName);
+		if (PQExpBufferDataBroken(tables_query))
+		{
+			SC_set_error(stmt, STMT_NO_MEMORY_ERROR, "Out of memory in PGAPI_ForeignKeys()", func);
+			goto cleanup;
+		}
 
-		result = PGAPI_ExecDirect(htbl_stmt, (SQLCHAR *) tables_query, SQL_NTS, PODBC_RDONLY);
+		result = PGAPI_ExecDirect(tbl_stmt, (SQLCHAR *) tables_query.data, SQL_NTS, PODBC_RDONLY);
 
 		if (!SQL_SUCCEEDED(result))
 		{
@@ -4197,92 +4204,81 @@ PGAPI_ForeignKeys_old(HSTMT hstmt,
 			goto cleanup;
 		}
 
-		result = PGAPI_BindCol(htbl_stmt, 1, SQL_C_BINARY,
+		result = PGAPI_BindCol(tbl_stmt, 1, SQL_C_BINARY,
 							   trig_args, sizeof(trig_args), NULL);
 		if (!SQL_SUCCEEDED(result))
 		{
-			SC_error_copy(stmt, tbl_stmt, TRUE);
 			goto cleanup;
 		}
 
-		result = PGAPI_BindCol(htbl_stmt, 2, SQL_C_SHORT,
+		result = PGAPI_BindCol(tbl_stmt, 2, SQL_C_SHORT,
 							   &trig_nargs, 0, NULL);
 		if (!SQL_SUCCEEDED(result))
 		{
-			SC_error_copy(stmt, tbl_stmt, TRUE);
 			goto cleanup;
 		}
 
-		result = PGAPI_BindCol(htbl_stmt, 3, internal_asis_type,
+		result = PGAPI_BindCol(tbl_stmt, 3, internal_asis_type,
 						 trig_deferrable, sizeof(trig_deferrable), NULL);
 		if (!SQL_SUCCEEDED(result))
 		{
-			SC_error_copy(stmt, tbl_stmt, TRUE);
 			goto cleanup;
 		}
 
-		result = PGAPI_BindCol(htbl_stmt, 4, internal_asis_type,
+		result = PGAPI_BindCol(tbl_stmt, 4, internal_asis_type,
 					 trig_initdeferred, sizeof(trig_initdeferred), NULL);
 		if (!SQL_SUCCEEDED(result))
 		{
-			SC_error_copy(stmt, tbl_stmt, TRUE);
 			goto cleanup;
 		}
 
-		result = PGAPI_BindCol(htbl_stmt, 5, internal_asis_type,
+		result = PGAPI_BindCol(tbl_stmt, 5, internal_asis_type,
 							   upd_rule, sizeof(upd_rule), NULL);
 		if (!SQL_SUCCEEDED(result))
 		{
-			SC_error_copy(stmt, tbl_stmt, TRUE);
 			goto cleanup;
 		}
 
-		result = PGAPI_BindCol(htbl_stmt, 6, internal_asis_type,
+		result = PGAPI_BindCol(tbl_stmt, 6, internal_asis_type,
 							   del_rule, sizeof(del_rule), NULL);
 		if (!SQL_SUCCEEDED(result))
 		{
-			SC_error_copy(stmt, tbl_stmt, TRUE);
 			goto cleanup;
 		}
 
-		result = PGAPI_BindCol(htbl_stmt, 7, SQL_C_ULONG,
+		result = PGAPI_BindCol(tbl_stmt, 7, SQL_C_ULONG,
 							   &relid1, sizeof(relid1), NULL);
 		if (!SQL_SUCCEEDED(result))
 		{
-			SC_error_copy(stmt, tbl_stmt, TRUE);
 			goto cleanup;
 		}
-		result = PGAPI_BindCol(htbl_stmt, 8, SQL_C_ULONG,
+		result = PGAPI_BindCol(tbl_stmt, 8, SQL_C_ULONG,
 							   &relid2, sizeof(relid2), NULL);
 		if (!SQL_SUCCEEDED(result))
 		{
-			SC_error_copy(stmt, tbl_stmt, TRUE);
 			goto cleanup;
 		}
-		result = PGAPI_BindCol(htbl_stmt, 9, internal_asis_type,
+		result = PGAPI_BindCol(tbl_stmt, 9, internal_asis_type,
 					pk_table_fetched, TABLE_NAME_STORAGE_LEN, NULL);
 		if (!SQL_SUCCEEDED(result))
 		{
-			SC_error_copy(stmt, tbl_stmt, TRUE);
 			goto cleanup;
 		}
-		result = PGAPI_BindCol(htbl_stmt, 10, internal_asis_type,
+		result = PGAPI_BindCol(tbl_stmt, 10, internal_asis_type,
 					constrname, NAMESTORAGELEN, NULL);
 		if (!SQL_SUCCEEDED(result))
 		{
-			SC_error_copy(stmt, tbl_stmt, TRUE);
 			goto cleanup;
 		}
 
-		result = PGAPI_BindCol(htbl_stmt, 11, internal_asis_type,
+		result = PGAPI_BindCol(tbl_stmt, 11, internal_asis_type,
 				schema_fetched, SCHEMA_NAME_STORAGE_LEN, NULL);
 		if (!SQL_SUCCEEDED(result))
 		{
-			SC_error_copy(stmt, tbl_stmt, TRUE);
 			goto cleanup;
 		}
 
-		result = PGAPI_Fetch(htbl_stmt);
+		result = PGAPI_Fetch(tbl_stmt);
 		if (result == SQL_NO_DATA_FOUND)
 		{
 			ret = SQL_SUCCESS;
@@ -4315,7 +4311,7 @@ PGAPI_ForeignKeys_old(HSTMT hstmt,
 			/* Compute the number of keyparts. */
 			num_keys = (trig_nargs - 4) / 2;
 
-			mylog("Foreign Key Case#2: trig_nargs = %d, num_keys = %d\n", trig_nargs, num_keys);
+			MYLOG(0, "Foreign Key Case#2: trig_nargs = %d, num_keys = %d\n", trig_nargs, num_keys);
 
 			/* If there is a pk table specified, then check it. */
 			if (pk_table_needed && pk_table_needed[0] != '\0')
@@ -4323,7 +4319,7 @@ PGAPI_ForeignKeys_old(HSTMT hstmt,
 				/* If it doesn't match, then continue */
 				if (strcmp(pk_table_fetched, pk_table_needed))
 				{
-					result = PGAPI_Fetch(htbl_stmt);
+					result = PGAPI_Fetch(tbl_stmt);
 					continue;
 				}
 			}
@@ -4359,7 +4355,7 @@ PGAPI_ForeignKeys_old(HSTMT hstmt,
 					got_pkname = TRUE;
 				}
 				pkey_text = getClientColumnName(conn, relid2, pkey_ptr, &pkey_alloced);
-				mylog("%s: pkey_ptr='%s', pkey='%s'\n", func, pkey_text, pkey);
+				MYLOG(0, "pkey_ptr='%s', pkey='%s'\n", pkey_text, pkey);
 				if (strcmp(pkey_text, pkey))
 				{
 					num_keys = 0;
@@ -4423,19 +4419,19 @@ PGAPI_ForeignKeys_old(HSTMT hstmt,
 				pkey_text = getClientColumnName(conn, relid2, pkey_ptr, &pkey_alloced);
 				fkey_text = getClientColumnName(conn, relid1, fkey_ptr, &fkey_alloced);
 
-				mylog("%s: pk_table = '%s', pkey_ptr = '%s'\n", func, pk_table_fetched, pkey_text);
+				MYLOG(0, "pk_table = '%s', pkey_ptr = '%s'\n", pk_table_fetched, pkey_text);
 				set_tuplefield_string(&tuple[FKS_PKTABLE_CAT], CurrCat(conn));
 				set_tuplefield_string(&tuple[FKS_PKTABLE_SCHEM], GET_SCHEMA_NAME(schema_fetched));
 				set_tuplefield_string(&tuple[FKS_PKTABLE_NAME], pk_table_fetched);
 				set_tuplefield_string(&tuple[FKS_PKCOLUMN_NAME], pkey_text);
 
-				mylog("%s: fk_table_needed = '%s', fkey_ptr = '%s'\n", func, fk_table_needed, fkey_text);
+				MYLOG(0, "fk_table_needed = '%s', fkey_ptr = '%s'\n", fk_table_needed, fkey_text);
 				set_tuplefield_string(&tuple[FKS_FKTABLE_CAT], CurrCat(conn));
 				set_tuplefield_string(&tuple[FKS_FKTABLE_SCHEM], GET_SCHEMA_NAME(schema_needed));
 				set_tuplefield_string(&tuple[FKS_FKTABLE_NAME], fk_table_needed);
 				set_tuplefield_string(&tuple[FKS_FKCOLUMN_NAME], fkey_text);
 
-				mylog("%s: upd_rule_type = '%i', del_rule_type = '%i'\n, trig_name = '%s'", func, upd_rule_type, del_rule_type, trig_args);
+				MYLOG(0, "upd_rule_type = '%i', del_rule_type = '%i'\n, trig_name = '%s'", upd_rule_type, del_rule_type, trig_args);
 				set_tuplefield_int2(&tuple[FKS_KEY_SEQ], (Int2) (k + 1));
 				set_tuplefield_int2(&tuple[FKS_UPDATE_RULE], upd_rule_type);
 				set_tuplefield_int2(&tuple[FKS_DELETE_RULE], del_rule_type);
@@ -4458,7 +4454,7 @@ PGAPI_ForeignKeys_old(HSTMT hstmt,
 				}
 			}
 
-			result = PGAPI_Fetch(htbl_stmt);
+			result = PGAPI_Fetch(tbl_stmt);
 		}
 	}
 
@@ -4472,9 +4468,9 @@ PGAPI_ForeignKeys_old(HSTMT hstmt,
 		char	*escSchemaName;
 
 		escPkTableName = simpleCatalogEscape((SQLCHAR *) pk_table_needed, SQL_NTS, conn);
-		schema_strcat(schema_needed, sizeof(schema_needed), "%.*s", szPkTableOwner, cbPkTableOwner, szPkTableName, cbPkTableName, conn);
+		schema_str(schema_needed, sizeof(schema_needed), szPkTableOwner, cbPkTableOwner, TABLE_IS_VALID(szPkTableName, cbPkTableName), conn);
 		escSchemaName = simpleCatalogEscape((SQLCHAR *) schema_needed, SQL_NTS, conn);
-		SPRINTF_FIXED(tables_query, "SELECT	pt.tgargs, "
+		printfPQExpBuffer(&tables_query, "SELECT	pt.tgargs, "
 			"	pt.tgnargs, "
 			"	pt.tgdeferrable, "
 			"	pt.tginitdeferred, "
@@ -4516,100 +4512,93 @@ PGAPI_ForeignKeys_old(HSTMT hstmt,
 			" order by pt.tgconstrname",
 			eq_string, escPkTableName, eq_string, escSchemaName);
 		free(escSchemaName);
-
-		result = PGAPI_ExecDirect(htbl_stmt, (SQLCHAR *) tables_query, SQL_NTS, PODBC_RDONLY);
-		if (!SQL_SUCCEEDED(result))
+		if (PQExpBufferDataBroken(tables_query))
 		{
-			SC_error_copy(stmt, tbl_stmt, TRUE);
+			SC_set_error(stmt, STMT_NO_MEMORY_ERROR, "Out of memory in PGAPI_ForeignKeys()", func);
 			goto cleanup;
 		}
 
-		result = PGAPI_BindCol(htbl_stmt, 1, SQL_C_BINARY,
+		result = PGAPI_ExecDirect(tbl_stmt, (SQLCHAR *) tables_query.data, SQL_NTS, PODBC_RDONLY);
+		if (!SQL_SUCCEEDED(result))
+		{
+			goto cleanup;
+		}
+
+		result = PGAPI_BindCol(tbl_stmt, 1, SQL_C_BINARY,
 							   trig_args, sizeof(trig_args), NULL);
 		if (!SQL_SUCCEEDED(result))
 		{
-			SC_error_copy(stmt, tbl_stmt, TRUE);
 			goto cleanup;
 		}
 
-		result = PGAPI_BindCol(htbl_stmt, 2, SQL_C_SHORT,
+		result = PGAPI_BindCol(tbl_stmt, 2, SQL_C_SHORT,
 							   &trig_nargs, 0, NULL);
 		if (!SQL_SUCCEEDED(result))
 		{
-			SC_error_copy(stmt, tbl_stmt, TRUE);
 			goto cleanup;
 		}
 
-		result = PGAPI_BindCol(htbl_stmt, 3, internal_asis_type,
+		result = PGAPI_BindCol(tbl_stmt, 3, internal_asis_type,
 						 trig_deferrable, sizeof(trig_deferrable), NULL);
 		if (!SQL_SUCCEEDED(result))
 		{
-			SC_error_copy(stmt, tbl_stmt, TRUE);
 			goto cleanup;
 		}
 
-		result = PGAPI_BindCol(htbl_stmt, 4, internal_asis_type,
+		result = PGAPI_BindCol(tbl_stmt, 4, internal_asis_type,
 					 trig_initdeferred, sizeof(trig_initdeferred), NULL);
 		if (!SQL_SUCCEEDED(result))
 		{
-			SC_error_copy(stmt, tbl_stmt, TRUE);
 			goto cleanup;
 		}
 
-		result = PGAPI_BindCol(htbl_stmt, 5, internal_asis_type,
+		result = PGAPI_BindCol(tbl_stmt, 5, internal_asis_type,
 							   upd_rule, sizeof(upd_rule), NULL);
 		if (!SQL_SUCCEEDED(result))
 		{
-			SC_error_copy(stmt, tbl_stmt, TRUE);
 			goto cleanup;
 		}
 
-		result = PGAPI_BindCol(htbl_stmt, 6, internal_asis_type,
+		result = PGAPI_BindCol(tbl_stmt, 6, internal_asis_type,
 							   del_rule, sizeof(del_rule), NULL);
 		if (!SQL_SUCCEEDED(result))
 		{
-			SC_error_copy(stmt, tbl_stmt, TRUE);
 			goto cleanup;
 		}
 
-		result = PGAPI_BindCol(htbl_stmt, 7, SQL_C_ULONG,
+		result = PGAPI_BindCol(tbl_stmt, 7, SQL_C_ULONG,
 						&relid1, sizeof(relid1), NULL);
 		if (!SQL_SUCCEEDED(result))
 		{
-			SC_error_copy(stmt, tbl_stmt, TRUE);
 			goto cleanup;
 		}
-		result = PGAPI_BindCol(htbl_stmt, 8, SQL_C_ULONG,
+		result = PGAPI_BindCol(tbl_stmt, 8, SQL_C_ULONG,
 						&relid2, sizeof(relid2), NULL);
 		if (!SQL_SUCCEEDED(result))
 		{
-			SC_error_copy(stmt, tbl_stmt, TRUE);
 			goto cleanup;
 		}
-		result = PGAPI_BindCol(htbl_stmt, 9, internal_asis_type,
+		result = PGAPI_BindCol(tbl_stmt, 9, internal_asis_type,
 					fk_table_fetched, TABLE_NAME_STORAGE_LEN, NULL);
 		if (!SQL_SUCCEEDED(result))
 		{
-			SC_error_copy(stmt, tbl_stmt, TRUE);
 			goto cleanup;
 		}
-		result = PGAPI_BindCol(htbl_stmt, 10, internal_asis_type,
+		result = PGAPI_BindCol(tbl_stmt, 10, internal_asis_type,
 					constrname, NAMESTORAGELEN, NULL);
 		if (!SQL_SUCCEEDED(result))
 		{
-			SC_error_copy(stmt, tbl_stmt, TRUE);
 			goto cleanup;
 		}
 
-		result = PGAPI_BindCol(htbl_stmt, 11, internal_asis_type,
+		result = PGAPI_BindCol(tbl_stmt, 11, internal_asis_type,
 				schema_fetched, SCHEMA_NAME_STORAGE_LEN, NULL);
 		if (!SQL_SUCCEEDED(result))
 		{
-			SC_error_copy(stmt, tbl_stmt, TRUE);
 			goto cleanup;
 		}
 
-		result = PGAPI_Fetch(htbl_stmt);
+		result = PGAPI_Fetch(tbl_stmt);
 		if (result == SQL_NO_DATA_FOUND)
 		{
 			ret = SQL_SUCCESS;
@@ -4685,7 +4674,7 @@ PGAPI_ForeignKeys_old(HSTMT hstmt,
 			else
 				defer_type = SQL_NOT_DEFERRABLE;
 
-			mylog("Foreign Key Case#1: trig_nargs = %d, num_keys = %d\n", trig_nargs, num_keys);
+			MYLOG(0, "Foreign Key Case#1: trig_nargs = %d, num_keys = %d\n", trig_nargs, num_keys);
 
 			/* Get to first primary key */
 			pkey_ptr = trig_args;
@@ -4702,17 +4691,17 @@ PGAPI_ForeignKeys_old(HSTMT hstmt,
 				pkey_text = getClientColumnName(conn, relid1, pkey_ptr, &pkey_alloced);
 				fkey_text = getClientColumnName(conn, relid2, fkey_ptr, &fkey_alloced);
 
-				mylog("pkey_ptr = '%s', fk_table = '%s', fkey_ptr = '%s'\n", pkey_text, fk_table_fetched, fkey_text);
+				MYLOG(0, "pkey_ptr = '%s', fk_table = '%s', fkey_ptr = '%s'\n", pkey_text, fk_table_fetched, fkey_text);
 
 				tuple = QR_AddNew(res);
 
-				mylog("pk_table_needed = '%s', pkey_ptr = '%s'\n", pk_table_needed, pkey_text);
+				MYLOG(0, "pk_table_needed = '%s', pkey_ptr = '%s'\n", pk_table_needed, pkey_text);
 				set_tuplefield_string(&tuple[FKS_PKTABLE_CAT], CurrCat(conn));
 				set_tuplefield_string(&tuple[FKS_PKTABLE_SCHEM], GET_SCHEMA_NAME(schema_needed));
 				set_tuplefield_string(&tuple[FKS_PKTABLE_NAME], pk_table_needed);
 				set_tuplefield_string(&tuple[FKS_PKCOLUMN_NAME], pkey_text);
 
-				mylog("fk_table = '%s', fkey_ptr = '%s'\n", fk_table_fetched, fkey_text);
+				MYLOG(0, "fk_table = '%s', fkey_ptr = '%s'\n", fk_table_fetched, fkey_text);
 				set_tuplefield_string(&tuple[FKS_FKTABLE_CAT], CurrCat(conn));
 				set_tuplefield_string(&tuple[FKS_FKTABLE_SCHEM], GET_SCHEMA_NAME(schema_fetched));
 				set_tuplefield_string(&tuple[FKS_FKTABLE_NAME], fk_table_fetched);
@@ -4720,7 +4709,7 @@ PGAPI_ForeignKeys_old(HSTMT hstmt,
 
 				set_tuplefield_int2(&tuple[FKS_KEY_SEQ], (Int2) (k + 1));
 
-				mylog("upd_rule = %d, del_rule= %d", upd_rule_type, del_rule_type);
+				MYLOG(0, "upd_rule = %d, del_rule= %d", upd_rule_type, del_rule_type);
 				set_nullfield_int2(&tuple[FKS_UPDATE_RULE], upd_rule_type);
 				set_nullfield_int2(&tuple[FKS_DELETE_RULE], del_rule_type);
 
@@ -4729,7 +4718,7 @@ PGAPI_ForeignKeys_old(HSTMT hstmt,
 
 				set_tuplefield_string(&tuple[FKS_TRIGGER_NAME], trig_args);
 
-				mylog(" defer_type = %d\n", defer_type);
+				MYPRINTF(0, " defer_type = %d\n", defer_type);
 				set_tuplefield_int2(&tuple[FKS_DEFERRABILITY], defer_type);
 
 				if (pkey_alloced)
@@ -4746,7 +4735,7 @@ PGAPI_ForeignKeys_old(HSTMT hstmt,
 					fkey_ptr += strlen(fkey_ptr) + 1;
 				}
 			}
-			result = PGAPI_Fetch(htbl_stmt);
+			result = PGAPI_Fetch(tbl_stmt);
 		}
 	}
 	else
@@ -4764,6 +4753,11 @@ cleanup:
 	 */
 	stmt->status = STMT_FINISHED;
 
+	if (!SQL_SUCCEEDED(ret) && 0 >= SC_get_errornumber(stmt))
+		SC_error_copy(stmt, tbl_stmt, TRUE);
+
+	if (!PQExpBufferDataBroken(tables_query))
+		termPQExpBuffer(&tables_query);
 	if (pkey_alloced)
 		free(pkey_text);
 	if (fkey_alloced)
@@ -4777,8 +4771,8 @@ cleanup:
 	if (escFkTableName)
 		free(escFkTableName);
 
-	if (htbl_stmt)
-		PGAPI_FreeStmt(htbl_stmt, SQL_DROP);
+	if (tbl_stmt)
+		PGAPI_FreeStmt(tbl_stmt, SQL_DROP);
 	if (hpkey_stmt)
 		PGAPI_FreeStmt(hpkey_stmt, SQL_DROP);
 
@@ -4787,7 +4781,7 @@ cleanup:
 	SC_set_rowset_start(stmt, -1, FALSE);
 	SC_set_current_col(stmt, -1);
 
-	mylog("%s(): EXIT, stmt=%p, ret=%d\n", func, stmt, ret);
+	MYLOG(0, "leaving stmt=%p, ret=%d\n", stmt, ret);
 	return ret;
 }
 
@@ -4864,7 +4858,7 @@ PGAPI_ProcedureColumns(HSTMT hstmt,
 	CSTR func = "PGAPI_ProcedureColumns";
 	StatementClass	*stmt = (StatementClass *) hstmt;
 	ConnectionClass *conn = SC_get_conn(stmt);
-	char		proc_query[INFO_INQUIRY_LEN];
+	PQExpBufferData		proc_query = {0};
 	Int2		result_cols;
 	TupleField	*tuple;
 	char		*schema_name, *procname;
@@ -4873,17 +4867,17 @@ PGAPI_ProcedureColumns(HSTMT hstmt,
 	char		*proargmodes;
 	char		*delim = NULL;
 	char		*atttypid, *attname, *column_name;
-	QResultClass *res, *tres;
+	QResultClass *res, *tres = NULL;
 	SQLLEN		tcount;
 	OID			pgtype;
 	Int4		paramcount, column_size, i, j;
-	RETCODE		result;
+	RETCODE		ret = SQL_ERROR, result;
 	BOOL		search_pattern, bRetset, outpara_exist;
 	const char	*like_or_eq, *op_string, *retset;
 	int		ret_col = -1, ext_pos = -1, poid_pos = -1, attid_pos = -1, attname_pos = -1;
 	UInt4		poid = 0, newpoid;
 
-	mylog("%s: entering...\n", func);
+	MYLOG(0, "entering...\n");
 
 	if (result = SC_initialize_and_recycle(stmt), SQL_SUCCESS != result)
 		return result;
@@ -4901,12 +4895,14 @@ PGAPI_ProcedureColumns(HSTMT hstmt,
 		escProcName = simpleCatalogEscape(szProcName, cbProcName, conn);
 	}
 	op_string = gen_opestr(like_or_eq, conn);
-	STRCPY_FIXED(proc_query, "select proname, proretset, prorettype, "
+	initPQExpBuffer(&proc_query);
+#define	return	DONT_CALL_RETURN_FROM_HERE???
+	appendPQExpBufferStr(&proc_query, "select proname, proretset, prorettype, "
 			"pronargs, proargtypes, nspname, p.oid");
 	ret_col = ext_pos = 7;
 	poid_pos = 6;
 #ifdef	PRORET_COUNT
-	STRCAT_FIXED(proc_query, ", atttypid, attname");
+	appendPQExpBufferStr(&proc_query, ", atttypid, attname");
 	attid_pos = ext_pos;
 	attname_pos = ext_pos + 1;
 	ret_col += 2;
@@ -4914,36 +4910,36 @@ PGAPI_ProcedureColumns(HSTMT hstmt,
 #endif /* PRORET_COUNT */
 	if (PG_VERSION_GE(conn, 8.0))
 	{
-		STRCAT_FIXED(proc_query, ", proargnames");
+		appendPQExpBufferStr(&proc_query, ", proargnames");
 		ret_col++;
 	}
 	if (PG_VERSION_GE(conn, 8.1))
 	{
-		STRCAT_FIXED(proc_query, ", proargmodes, proallargtypes");
+		appendPQExpBufferStr(&proc_query, ", proargmodes, proallargtypes");
 		ret_col += 2;
 	}
 #ifdef	PRORET_COUNT
-	STRCAT_FIXED(proc_query, " from ((pg_catalog.pg_namespace n inner join"
+	appendPQExpBufferStr(&proc_query, " from ((pg_catalog.pg_namespace n inner join"
 			   " pg_catalog.pg_proc p on p.pronamespace = n.oid)"
 		" inner join pg_type t on t.oid = p.prorettype)"
 		" left outer join pg_attribute a on a.attrelid = t.typrelid "
 		" and attnum > 0 and not attisdropped where");
 #else
-	STRCAT_FIXED(proc_query, " from pg_catalog.pg_namespace n,"
+	appendPQExpBufferStr(&proc_query, " from pg_catalog.pg_namespace n,"
 			   " pg_catalog.pg_proc p where");
 			   " p.pronamespace = n.oid  and"
 			   " (not proretset) and");
 #endif /* PRORET_COUNT */
-	SPRINTFCAT_FIXED(proc_query,
+	appendPQExpBuffer(&proc_query,
 				 " has_function_privilege(p.oid, 'EXECUTE')");
 	if (IS_VALID_NAME(escSchemaName))
-		SPRINTFCAT_FIXED(proc_query,
+		appendPQExpBuffer(&proc_query,
 				 " and nspname %s'%s'",
 				 op_string, escSchemaName);
 	if (escProcName)
-		SPRINTFCAT_FIXED(proc_query,
+		appendPQExpBuffer(&proc_query,
 					 " and proname %s'%s'", op_string, escProcName);
-	SPRINTFCAT_FIXED(proc_query,
+	appendPQExpBuffer(&proc_query,
 				 " order by nspname, proname, p.oid, attnum");
 
 	if (escSchemaName)
@@ -4951,18 +4947,23 @@ PGAPI_ProcedureColumns(HSTMT hstmt,
 	if (escProcName)
 		free(escProcName);
 
-	tres = CC_send_query(conn, proc_query, NULL, READ_ONLY_QUERY, stmt);
+	if (PQExpBufferDataBroken(proc_query))
+	{
+		SC_set_error(stmt, STMT_NO_MEMORY_ERROR, "Out of memory in PGAPI_ProcedureColumns()", func);
+		goto cleanup;
+	}
+	tres = CC_send_query(conn, proc_query.data, NULL, READ_ONLY_QUERY, stmt);
 	if (!QR_command_maybe_successful(tres))
 	{
 		SC_set_error(stmt, STMT_EXEC_ERROR, "PGAPI_ProcedureColumns query error", func);
 		QR_Destructor(tres);
-		return SQL_ERROR;
+		goto cleanup;
 	}
 
 	if (res = QR_Constructor(), !res)
 	{
 		SC_set_error(stmt, STMT_NO_MEMORY_ERROR, "Couldn't allocate memory for PGAPI_ProcedureColumns result.", func);
-		return SQL_ERROR;
+		goto cleanup;
 	}
 	SC_set_Result(stmt, res);
 
@@ -5016,12 +5017,12 @@ PGAPI_ProcedureColumns(HSTMT hstmt,
 		newpoid = 0;
 		if (poid_pos >= 0)
 			newpoid = QR_get_value_backend_int(tres, i, poid_pos, NULL);
-mylog("newpoid=%d\n", newpoid);
+MYLOG(0, "newpoid=%d\n", newpoid);
 		atttypid = NULL;
 		if (attid_pos >= 0)
 		{
 			atttypid = QR_get_value_backend_text(tres, i, attid_pos);
-mylog("atttypid=%s\n", atttypid ? atttypid : "(null)");
+MYLOG(0, "atttypid=%s\n", atttypid ? atttypid : "(null)");
 		}
 		if (poid == 0 || newpoid != poid)
 		{
@@ -5131,7 +5132,7 @@ mylog("atttypid=%s\n", atttypid ? atttypid : "(null)");
 					}
 					else
 					{
-						for (delim = proargnames; *delim && !isspace((unsigned char) *delim) && ',' != *delim && '}' != *delim; delim++)
+						for (delim = proargnames; IS_NOT_SPACE(*delim) && ',' != *delim && '}' != *delim; delim++)
 							;
 					}
 					if (proargnames && '\0' == *delim) /* discard the incomplete name */
@@ -5228,7 +5229,13 @@ mylog("atttypid=%s\n", atttypid ? atttypid : "(null)");
 			set_tuplefield_string(&tuple[PROCOLS_IS_NULLABLE], NULL_STRING);
 		}
 	}
-	QR_Destructor(tres);
+	ret = SQL_SUCCESS;
+cleanup:
+#undef return
+	if (tres)
+		QR_Destructor(tres);
+	if (!PQExpBufferDataBroken(proc_query))
+		termPQExpBuffer(&proc_query);
 	/*
 	 * also, things need to think that this statement is finished so the
 	 * results can be retrieved.
@@ -5239,7 +5246,7 @@ mylog("atttypid=%s\n", atttypid ? atttypid : "(null)");
 	SC_set_rowset_start(stmt, -1, FALSE);
 	SC_set_current_col(stmt, -1);
 
-	return SQL_SUCCESS;
+	return ret;
 }
 
 
@@ -5256,14 +5263,14 @@ PGAPI_Procedures(HSTMT hstmt,
 	CSTR func = "PGAPI_Procedures";
 	StatementClass *stmt = (StatementClass *) hstmt;
 	ConnectionClass *conn = SC_get_conn(stmt);
-	char		proc_query[INFO_INQUIRY_LEN];
+	PQExpBufferData		proc_query = {0};
 	char	*escSchemaName = NULL, *escProcName = NULL;
 	QResultClass *res;
-	RETCODE		result;
+	RETCODE		ret = SQL_ERROR, result;
 	const char	*like_or_eq, *op_string;
 	BOOL	search_pattern;
 
-	mylog("%s: entering... scnm=%p len=%d\n", func, szProcOwner, cbProcOwner);
+	MYLOG(0, "entering... scnm=%p len=%d\n", szProcOwner, cbProcOwner);
 
 	if (result = SC_initialize_and_recycle(stmt), SQL_SUCCESS != result)
 		return result;
@@ -5285,48 +5292,56 @@ PGAPI_Procedures(HSTMT hstmt,
 	 * The following seems the simplest implementation
 	 */
 	op_string = gen_opestr(like_or_eq, conn);
-	STRCPY_FIXED(proc_query, "select '' as " "PROCEDURE_CAT" ", nspname as " "PROCEDURE_SCHEM" ","
-	" proname as " "PROCEDURE_NAME" ", '' as " "NUM_INPUT_PARAMS" ","
-	   " '' as " "NUM_OUTPUT_PARAMS" ", '' as " "NUM_RESULT_SETS" ","
-	   " '' as " "REMARKS" ","
+	initPQExpBuffer(&proc_query);
+#define	return	DONT_CALL_RETURN_FROM_HERE???
+	appendPQExpBufferStr(&proc_query, "select ''::varchar as " "PROCEDURE_CAT" ", nspname as " "PROCEDURE_SCHEM" ","
+	" proname as " "PROCEDURE_NAME" ", ''::varchar as " "NUM_INPUT_PARAMS" ","
+	   " ''::varchar as " "NUM_OUTPUT_PARAMS" ", ''::varchar as " "NUM_RESULT_SETS" ","
+	   " ''::varchar as " "REMARKS" ","
 	   " case when prorettype = 0 then 1::int2 else 2::int2 end"
 	   " as "		  "PROCEDURE_TYPE" " from pg_catalog.pg_namespace,"
 	   " pg_catalog.pg_proc"
 	  " where pg_proc.pronamespace = pg_namespace.oid");
-	schema_strcat1(proc_query, sizeof(proc_query), " and nspname %s'%.*s'", op_string, escSchemaName, szProcName, cbProcName, conn);
+	schema_appendPQExpBuffer1(&proc_query, " and nspname %s'%.*s'", op_string, escSchemaName, TABLE_IS_VALID(szProcName, cbProcName), conn);
 	if (IS_VALID_NAME(escProcName))
-		SPRINTFCAT_FIXED(proc_query,
+		appendPQExpBuffer(&proc_query,
 				 " and proname %s'%s'", op_string, escProcName);
 
-	res = CC_send_query(conn, proc_query, NULL, READ_ONLY_QUERY, stmt);
+	if (PQExpBufferDataBroken(proc_query))
+	{
+		SC_set_error(stmt, STMT_NO_MEMORY_ERROR, "Out of memory in PGAPI_Procedures()", func);
+		goto cleanup;
+	}
+	res = CC_send_query(conn, proc_query.data, NULL, READ_ONLY_QUERY, stmt);
 	if (!QR_command_maybe_successful(res))
 	{
 		SC_set_error(stmt, STMT_EXEC_ERROR, "PGAPI_Procedures query error", func);
 		QR_Destructor(res);
-		if (escSchemaName)
-			free(escSchemaName);
-		if (escProcName)
-			free(escProcName);
-		return SQL_ERROR;
+		goto cleanup;
 	}
 	SC_set_Result(stmt, res);
 
+	ret = SQL_SUCCESS;
 	/*
 	 * also, things need to think that this statement is finished so the
 	 * results can be retrieved.
 	 */
+cleanup:
+#undef return
 	stmt->status = STMT_FINISHED;
 	extend_column_bindings(SC_get_ARDF(stmt), 8);
 	if (escSchemaName)
 		free(escSchemaName);
 	if (escProcName)
 		free(escProcName);
+	if (!PQExpBufferDataBroken(proc_query))
+		termPQExpBuffer(&proc_query);
 	/* set up the current tuple pointer for SQLFetch */
 	stmt->currTuple = -1;
 	SC_set_rowset_start(stmt, -1, FALSE);
 	SC_set_current_col(stmt, -1);
 
-	return SQL_SUCCESS;
+	return ret;
 }
 
 
@@ -5358,7 +5373,7 @@ useracl_upd(char (*useracl)[ACLMAX], QResultClass *allures, const char *user, co
 {
 	int usercount = (int) QR_get_num_cached_tuples(allures), i, addcnt = 0;
 
-mylog("user=%s auth=%s\n", user, auth);
+MYLOG(0, "user=%s auth=%s\n", user, auth);
 	if (user[0])
 		for (i = 0; i < usercount; i++)
 		{
@@ -5373,7 +5388,7 @@ mylog("user=%s auth=%s\n", user, auth);
 		{
 			addcnt += usracl_auth(useracl[i], auth);
 		}
-	mylog("addcnt=%d\n", addcnt);
+	MYLOG(0, "addcnt=%d\n", addcnt);
 }
 
 RETCODE		SQL_API
@@ -5390,21 +5405,21 @@ PGAPI_TablePrivileges(HSTMT hstmt,
 	CSTR func = "PGAPI_TablePrivileges";
 	ConnectionClass *conn = SC_get_conn(stmt);
 	Int2		result_cols;
-	char		proc_query[INFO_INQUIRY_LEN];
+	PQExpBufferData		proc_query = {0};
 	QResultClass	*res, *wres = NULL, *allures = NULL;
 	TupleField	*tuple;
 	Int4		tablecount, usercount, i, j, k;
 	BOOL		grpauth, sys, su;
 	char		(*useracl)[ACLMAX] = NULL, *acl, *user, *delim, *auth;
 	const char	*reln, *owner, *priv, *schnm = NULL;
-	RETCODE		result, ret = SQL_SUCCESS;
+	RETCODE		result, ret = SQL_ERROR;
 	const char	*like_or_eq, *op_string;
 	const SQLCHAR *szSchemaName;
 	SQLSMALLINT	cbSchemaName;
 	char		*escSchemaName = NULL, *escTableName = NULL;
 	BOOL		search_pattern;
 
-	mylog("%s: entering... scnm=%p len-%d\n", func, szTableOwner, cbTableOwner);
+	MYLOG(0, "entering... scnm=%p len-%d\n", szTableOwner, cbTableOwner);
 	if (result = SC_initialize_and_recycle(stmt), SQL_SUCCESS != result)
 		return result;
 
@@ -5467,23 +5482,28 @@ retry_public_schema:
 		escSchemaName = simpleCatalogEscape(szSchemaName, cbSchemaName, conn);
 
 	op_string = gen_opestr(like_or_eq, conn);
-	STRCPY_FIXED(proc_query, "select relname, usename, relacl, nspname"
+	initPQExpBuffer(&proc_query);
+	appendPQExpBufferStr(&proc_query, "select relname, usename, relacl, nspname"
 	" from pg_catalog.pg_namespace, pg_catalog.pg_class ,"
 	" pg_catalog.pg_user where");
 	if (escSchemaName)
-		schema_strcat1(proc_query, sizeof(proc_query), " nspname %s'%.*s' and", op_string, escSchemaName, szTableName, cbTableName, conn);
+		schema_appendPQExpBuffer1(&proc_query, " nspname %s'%.*s' and", op_string, escSchemaName, TABLE_IS_VALID(szTableName, cbTableName), conn);
 
 	if (escTableName)
-		SPRINTFCAT_FIXED(proc_query, " relname %s'%s' and", op_string, escTableName);
-	STRCAT_FIXED(proc_query, " pg_namespace.oid = relnamespace and relkind in ('r', 'v') and");
+		appendPQExpBuffer(&proc_query, " relname %s'%s' and", op_string, escTableName);
+	appendPQExpBufferStr(&proc_query, " pg_namespace.oid = relnamespace and relkind in ('r', 'v') and");
 	if ((!escTableName) && (!escSchemaName))
-		STRCAT_FIXED(proc_query, " nspname not in ('pg_catalog', 'information_schema') and");
+		appendPQExpBufferStr(&proc_query, " nspname not in ('pg_catalog', 'information_schema') and");
 
-	STRCAT_FIXED(proc_query, " pg_user.usesysid = relowner");
-	if (wres = CC_send_query(conn, proc_query, NULL, READ_ONLY_QUERY, stmt), !QR_command_maybe_successful(wres))
+	appendPQExpBufferStr(&proc_query, " pg_user.usesysid = relowner");
+	if (PQExpBufferDataBroken(proc_query))
+	{
+		SC_set_error(stmt, STMT_NO_MEMORY_ERROR, "Out of memory in PGAPI_TablePrivileges()", func);
+		goto cleanup;
+	}
+	if (wres = CC_send_query(conn, proc_query.data, NULL, READ_ONLY_QUERY, stmt), !QR_command_maybe_successful(wres))
 	{
 		SC_set_error(stmt, STMT_EXEC_ERROR, "PGAPI_TablePrivileges query error", func);
-		ret = SQL_ERROR;
 		goto cleanup;
 	}
 	tablecount = (Int4) QR_get_num_cached_tuples(wres);
@@ -5501,11 +5521,16 @@ retry_public_schema:
 		}
 	}
 
-	STRCPY_FIXED(proc_query, "select usename, usesysid, usesuper from pg_user");
-	if (allures = CC_send_query(conn, proc_query, NULL, READ_ONLY_QUERY, stmt), !QR_command_maybe_successful(allures))
+	resetPQExpBuffer(&proc_query);
+	appendPQExpBufferStr(&proc_query, "select usename, usesysid, usesuper from pg_user");
+	if (PQExpBufferDataBroken(proc_query))
+	{
+		SC_set_error(stmt, STMT_NO_MEMORY_ERROR, "Out of memory in PGAPI_TablePrivileges()", func);
+		goto cleanup;
+	}
+	if (allures = CC_send_query(conn, proc_query.data, NULL, READ_ONLY_QUERY, stmt), !QR_command_maybe_successful(allures))
 	{
 		SC_set_error(stmt, STMT_EXEC_ERROR, "PGAPI_TablePrivileges query error", func);
-		ret = SQL_ERROR;
 		goto cleanup;
 	}
 	usercount = (Int4) QR_get_num_cached_tuples(allures);
@@ -5513,7 +5538,6 @@ retry_public_schema:
 	if (!useracl)
 	{
 		SC_set_error(stmt, STMT_NO_MEMORY_ERROR, "Couldn't allocate memory for user acl.", func);
-		ret = SQL_ERROR;
 		goto cleanup;
 	}
 	for (i = 0; i < tablecount; i++)
@@ -5554,8 +5578,14 @@ retry_public_schema:
 				int		i;
 				char	*grolist, *uid, *delm;
 
-				SPRINTF_FIXED(proc_query, "select grolist from pg_group where groname = '%s'", user);
-				if (gres = CC_send_query(conn, proc_query, NULL, READ_ONLY_QUERY, stmt), !QR_command_maybe_successful(gres))
+				resetPQExpBuffer(&proc_query);
+				appendPQExpBuffer(&proc_query, "select grolist from pg_group where groname = '%s'", user);
+				if (PQExpBufferDataBroken(proc_query))
+				{
+					SC_set_error(stmt, STMT_NO_MEMORY_ERROR, "Out of memory in PGAPI_TablePrivileges()", func);
+					goto cleanup;
+				}
+				if (gres = CC_send_query(conn, proc_query.data, NULL, READ_ONLY_QUERY, stmt), !QR_command_maybe_successful(gres))
 				{
 					grolist = QR_get_value_backend_text(gres, 0, 0);
 					if (grolist && grolist[0] == '{')
@@ -5566,7 +5596,7 @@ retry_public_schema:
 								*delm = '\0';
 							else if (delm = strchr(uid, '}'), delm)
 								*delm = '\0';
-mylog("guid=%s\n", uid);
+MYLOG(0, "guid=%s\n", uid);
 							for (i = 0; i < usercount; i++)
 							{
 								if (strcmp(QR_get_value_backend_text(allures, i, 1), uid) == 0)
@@ -5615,7 +5645,7 @@ mylog("guid=%s\n", uid);
 					set_tuplefield_string(&tuple[TABPRIV_GRANTOR], "_SYSTEM");
 				else
 					set_tuplefield_string(&tuple[TABPRIV_GRANTOR], owner);
-				mylog("user=%s\n", user);
+				MYLOG(0, "user=%s\n", user);
 				set_tuplefield_string(&tuple[TABPRIV_GRANTEE], user);
 				switch (useracl[j][k])
 				{
@@ -5646,6 +5676,8 @@ mylog("guid=%s\n", uid);
 			}
 		}
 	}
+	ret = SQL_SUCCESS;
+
 cleanup:
 #undef	return
 	if (escSchemaName)
@@ -5654,6 +5686,8 @@ cleanup:
 		free(escTableName);
 	if (useracl)
 		free(useracl);
+	if (!PQExpBufferDataBroken(proc_query))
+		termPQExpBuffer(&proc_query);
 	if (wres)
 		QR_Destructor(wres);
 	if (allures)
@@ -5681,7 +5715,7 @@ PGAPI_ForeignKeys_new(HSTMT hstmt,
 	StatementClass	*stmt = (StatementClass *) hstmt;
 	QResultClass	*res = NULL;
 	RETCODE		ret = SQL_ERROR, result;
-	char		tables_query[INFO_INQUIRY_LEN];
+	PQExpBufferData		tables_query = {0};
 	char		*pk_table_needed = NULL, *escTableName = NULL;
 	char		*fk_table_needed = NULL;
 	char		schema_needed[SCHEMA_NAME_STORAGE_LEN + 1];
@@ -5694,7 +5728,7 @@ PGAPI_ForeignKeys_new(HSTMT hstmt,
 
 	const char *eq_string;
 
-	mylog("%s: entering...stmt=%p\n", func, stmt);
+	MYLOG(0, "entering...stmt=%p\n", stmt);
 
 	if (result = SC_initialize_and_recycle(stmt), SQL_SUCCESS != result)
 		return result;
@@ -5713,9 +5747,9 @@ PGAPI_ForeignKeys_new(HSTMT hstmt,
 	 */
 	if (NULL != fk_table_needed)
 	{
-		mylog("%s: entering Foreign Key Case #2", func);
+		MYLOG(0, " Foreign Key Case #2\n");
 		escTableName = simpleCatalogEscape((SQLCHAR *) fk_table_needed, SQL_NTS, conn);
-		schema_strcat(schema_needed, sizeof(schema_needed), "%.*s", szFkTableOwner, cbFkTableOwner, szFkTableName, cbFkTableName, conn);
+		schema_str(schema_needed, sizeof(schema_needed), szFkTableOwner, cbFkTableOwner, TABLE_IS_VALID(szFkTableName, cbFkTableName), conn);
 		relqual = "\n   and  conrelid = c.oid";
 	}
 	/*
@@ -5726,7 +5760,7 @@ PGAPI_ForeignKeys_new(HSTMT hstmt,
 	else if (NULL != pk_table_needed)
 	{
 		escTableName = simpleCatalogEscape((SQLCHAR *) pk_table_needed, SQL_NTS, conn);
-		schema_strcat(schema_needed, sizeof(schema_needed), "%.*s", szPkTableOwner, cbPkTableOwner, szPkTableName, cbPkTableName, conn);
+		schema_str(schema_needed, sizeof(schema_needed), szPkTableOwner, cbPkTableOwner, TABLE_IS_VALID(szPkTableName, cbPkTableName), conn);
 		relqual = "\n   and  confrelid = c.oid";
 	}
 	else
@@ -5743,7 +5777,9 @@ PGAPI_ForeignKeys_new(HSTMT hstmt,
 	STRCPY_FIXED(scmName2, "n1.nspname");
 	escSchemaName = simpleCatalogEscape((SQLCHAR *) schema_needed, SQL_NTS, conn);
 
-	SPRINTF_FIXED(tables_query,
+	initPQExpBuffer(&tables_query);
+#define	return	DONT_CALL_RETURN_FROM_HERE???
+	printfPQExpBuffer(&tables_query,
 		"select"
 		"	%s as PKTABLE_CAT"
 		",\n	%s as PKTABLE_SCHEM"
@@ -5836,13 +5872,18 @@ PGAPI_ForeignKeys_new(HSTMT hstmt,
 	{
 		free(escTableName);
 		escTableName = simpleCatalogEscape((SQLCHAR *) pk_table_needed, SQL_NTS, conn);
-		SPRINTFCAT_FIXED(tables_query,
+		appendPQExpBuffer(&tables_query,
 				"\n where c2.relname %s'%s'",
 				eq_string, escTableName);
 	}
-	STRCAT_FIXED(tables_query, "\n  order by ref.oid, ref.i");
+	appendPQExpBufferStr(&tables_query, "\n  order by ref.oid, ref.i");
 
-	if (res = CC_send_query(conn, tables_query, NULL, READ_ONLY_QUERY, stmt), !QR_command_maybe_successful(res))
+	if (PQExpBufferDataBroken(tables_query))
+	{
+		SC_set_error(stmt, STMT_NO_MEMORY_ERROR, "Out of memory in PGAPI_SpecialColumns()", func);
+		goto cleanup;
+	}
+	if (res = CC_send_query(conn, tables_query.data, NULL, READ_ONLY_QUERY, stmt), !QR_command_maybe_successful(res))
 	{
 		SC_set_error(stmt, STMT_EXEC_ERROR, "PGAPI_ForeignKeys query error", func);
 		QR_Destructor(res);
@@ -5869,11 +5910,13 @@ cleanup:
 		free(escTableName);
 	if (fk_table_needed)
 		free(fk_table_needed);
+	if (!PQExpBufferDataBroken(tables_query))
+		termPQExpBuffer(&tables_query);
 	/* set up the current tuple pointer for SQLFetch */
 	stmt->currTuple = -1;
 	SC_set_rowset_start(stmt, -1, FALSE);
 	SC_set_current_col(stmt, -1);
 
-	mylog("%s(): EXIT, stmt=%p, ret=%d\n", func, stmt, ret);
+	MYLOG(0, "leaving stmt=%p, ret=%d\n", stmt, ret);
 	return ret;
 }

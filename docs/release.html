@@ -9,6 +9,67 @@
 
 <h1>psqlODBC release notes</h1>
 <hr>
+<h2><a id="10.01.0000">psqlODBC 10.01.0000 Release</a></h2>
+Changes:<br />
+<ol type="1">
+<li>Call Get-VSSetupInstance to detect Visual Studio installations whose version >= 15 when VSSetup module is available.</li>
+<li>Review the handling of @@IDENTITY when a column's default is nextval(a_sequence) but the column isn't a serial. Unfortunately the function pg_get_serial_sequence() doesn't work for sequences which aren't serial type.</li>
+<li>Add add an option -NoPDB to buildInstallers.ps1.</li>
+The switch option can be specified so as to exclude PDB files from the installers.
+<li>Fix a bug in pgdebug_realloc().</li>
+<li>Free any data at exec params before the statement is executed again or the next set of parameters is processed. If not, then there will be a memory leak when the next SQLParamData/SQLPutData is called.>/li>
+Per report from Mihai Giurgeanu
+<li>Review the level of MYLOG, QLOG.</li>
+Divide *level 1(detail)* log into *level 1(tuple level)* log and *level 2(detail)* log.
+</ol><br />
+<h2><a id="10.00.0000">psqlODBC 10.00.0000 Release</a></h2>
+Changes:<br />
+<ol type="1">
+<li>Fix multibyte handling of ansi driver.</li>
+<li>Handle PG 10 identity columns.</li>
+<li>For PG10 servers, we will never see "unknown" output columns.</li>
+<li>Improve @@identty handling.</li>
+Use multibyte-aware eatTableIdentifiers() instead of next_name_token().<br />
+Use identifierEscape() to escape single quotes or double quotes.
+<li>PG_PRINTF_ATTRIBUTE instead of printf in __attribute__((format(printf, .., ..))) function attribute.</li>
+<li>Review the use of encoded_nextchar().</li>
+Remove variables which work in conjunction with encstr(encoded_str) so as to avoid misleadingness.
+<li>Use pg_get_serial_sequence() to get serial sequence of identity columns or serial columns. </li>
+pg_get_serial_sequence() for identity columns became available in PG 10.
+<li>Preparation for development with VC15(VS 2017).</li>
+<li>Fix the bug that 'create table T_$001 (\81c)' fails when useServerSidePrepare is turned on.</li>
+Per report from Gregory Pruss.
+</ol><br />
+<h2><a id="09.06.0500">psqlODBC 09.06.0500 Release</a></h2>
+Changes:<br />
+<ol type="1">
+<li>Fix a segfault on ResolveOneParam() function while executing a query after calling SQLSetStmtAttr(.., SQL_ATTR_APP_PARAM_DESC, an_ARD_for_another_statement, ..).</li>
+<li>Fix a linkage error when doing installcheck for test/win.mak.</li>
+Report and patch by Kazuki Uehara.
+<li>Fix a bug when fetching bytea field to SQL_C_BINALY data. It's bad to double count of bytes.</li>
+<li>Handle '$'s in identifiers correctly. Also take multibyte characters into account in identifiers.</li>
+<li>Reduce the use of snprintfcat(or SPRINTFCAT_FIXED macro) as much as possible. Instead use PQExpBuffer library without having to worry about buffer length.</li>
+<li>Use macro MYLOG instead of function mylog in preparation for later changes and unify mylog() and inolog() using level parameter.
+Enable the compiler to check the format string against the parameter of mylog() by adding __attribute__((format(printf,.,.))) to the declaration of mylog(GCC only).
+ Using this mechanism, check and fix many discordances of parameters.</li>
+<li>Implement myprintf() which prints logs according to printf format and make logs a little easier to read using the macro MYPRINTF() which calls myprintf().</li>
+<li>Introduce token control while parsing. Detect *select .. into* or *select ... for update* and suppress *declare .. cursor for* clause in declare/fetch mode using the mechanism.</li>
+<li>Add __FILE__, __FUNCTION__, __LINE__ to MYLOG.</li>
+<li>Fix an parameter unmatch error which would cause a crash.</li>
+<li>Removed some qlogs, changed some qlogs to MYLOG and added some qlogs.</li>
+<li>Move the implemetation of GetExeName() from psqlodbc.c(psqlsetup.c) to mylog.c.</li>
+<li>Remove the GssAuthUseGssapi option completely.</li>
+<li>Fix bug that calls strdup() for NULL pointers.</li>
+Per report from Ding, Haiqiang.
+<li>Detect fast shutdown while connecting.</li>
+<li>Put back the behavior when conversion errors from the current locale to SQLWCHAR occur.
+ Simply returns zero length string instead of erroring out.</li>
+Per report from Andrus.
+<li>Add level parameter to Commlog/Mylog option of setup program.</li>
+<li>Add __attribute__((format(printf,3,4))) to the declaration of snprintfcat().</li>
+<li>Allow PROCCALL in ReadOnly mode.</li>
+Per report from Matej Mihelic.
+</ol><br />
 <h2><a id="09.06.0410">psqlODBC 09.06.0410 Release</a></h2>
 Changes:<br />
 <ol type="1">

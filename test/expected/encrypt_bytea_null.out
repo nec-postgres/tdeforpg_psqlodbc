@@ -1,0 +1,155 @@
+connected
+
+===========ENCRYPT_BYTEA_TEST_NULL_DATA_START===============
+
+SQLPrepare_TEST_START
+
+INSERT_TEST
+SELECT * FROM pre_enc_bytea
+Result set:
+0	NULL	NULL
+1	NULL	NULL
+2	NULL	NULL
+
+SELECT (c1=c11)::text FROM pre_enc_bytea
+Result set:
+NULL
+NULL
+NULL
+
+UPDATE_TEST
+
+SELECT * FROM pre_enc_bytea
+Result set:
+0	NULL	NULL
+1	NULL	NULL
+2	NULL	NULL
+
+SELECT id, (c1=c11)::text FROM pre_enc_bytea
+Result set:
+0	NULL
+1	NULL
+2	NULL
+
+DELETE_TEST
+
+SELECT * FROM pre_enc_bytea
+Result set:
+0	NULL	NULL
+1	NULL	NULL
+2	NULL	NULL
+
+SELECT (c1=c11)::text FROM pre_enc_bytea
+Result set:
+NULL
+NULL
+NULL
+
+SELECT_TEST
+
+SELECT * FROM pre_enc_bytea
+Result set:
+0	NULL	NULL
+1	NULL	NULL
+2	NULL	NULL
+
+SELECT (c1=c11)::text,c1=c11 FROM pre_enc_bytea
+Result set:
+NULL	NULL
+NULL	NULL
+NULL	NULL
+
+SELECT * FROM pre_bytea_tbl UNION ALL SELECT id,c1 FROM pre_enc_bytea
+Result set:
+0	NULL
+1	NULL
+2	NULL
+0	NULL
+1	NULL
+2	NULL
+
+SELECT (e.c1=t.c1)::text FROM pre_enc_bytea e NATURAL JOIN pre_bytea_tbl t
+Result set:
+
+PREPARE_TEST_COMPLETE
+
+----------------------------------------
+SQLDirect_TEST_START
+
+INSERT_TEST
+SELECT * FROM dir_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+2	NULL	NULL
+3	NULL	NULL
+
+SELECT (c1=c11)::text FROM dir_enc_bytea
+Result set:
+true
+NULL
+NULL
+
+UPDATE_TEST
+SELECT * FROM dir_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+3	NULL	NULL
+2	NULL	010203040506
+
+SELECT (c1=c11)::text FROM dir_enc_bytea
+Result set:
+true
+NULL
+NULL
+
+DELETE_TEST
+SELECT * FROM dir_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+2	NULL	010203040506
+
+SELECT * FROM dir_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+2	NULL	010203040506
+
+SELECT (c1=c11)::text FROM dir_enc_bytea
+Result set:
+true
+NULL
+
+SELECT_TEST
+SELECT * FROM dir_enc_bytea WHERE c1 IS NULL
+Result set:
+2	NULL	010203040506
+
+SELECT * FROM pre_enc_bytea
+Result set:
+0	NULL	NULL
+1	NULL	NULL
+2	NULL	NULL
+
+SELECT * FROM dir_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+2	NULL	010203040506
+
+SELECT (c1=c11)::text FROM dir_enc_bytea
+Result set:
+true
+NULL
+
+SELECT * FROM dir_bytea_tbl UNION ALL SELECT id,c1 FROM dir_enc_bytea
+Result set:
+1	0102030405060708
+2	NULL
+1	0102030405060708
+2	NULL
+
+SELECT (e.c1=t.c1)::text FROM dir_enc_bytea e NATURAL JOIN dir_bytea_tbl t
+Result set:
+true
+
+DIRECTE_TEST_COMPLETE
+----------------------------------------
+disconnecting

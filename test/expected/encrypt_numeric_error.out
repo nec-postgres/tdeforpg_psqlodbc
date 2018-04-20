@@ -1,0 +1,68 @@
+connected
+
+====== diff_DATA ==============
+INSERT_VARCHAR
+
+22P02=ERROR: invalid input syntax for type numeric: ")";
+Error while executing the query
+
+22P02=ERROR: invalid input syntax for type numeric: ")";
+Error while executing the query
+
+SELECT * FROM pre_enc_num
+Result set:
+1	24197857161011715162171839636988778104	24197857161011715162171839636988778104
+
+----------------------------------------
+INSERT_TIMESTAMP
+
+22P02=ERROR: invalid input syntax for type numeric: "0041-30721-13398 30738:13398:30738.201445";
+Error while executing the query
+
+22P02=ERROR: invalid input syntax for type numeric: "0041-30721-13398 30738:13398:30738.201445";
+Error while executing the query
+
+SELECT * FROM pre_enc_num
+Result set:
+1	24197857161011715162171839636988778104	24197857161011715162171839636988778104
+
+----------------------------------------
+INSERT_BINARY
+
+22P02=ERROR: invalid input syntax for type numeric: "\x29000178563412785634127856341278563412";
+Error while executing the query
+
+22P02=ERROR: invalid input syntax for type numeric: "\x29000178563412785634127856341278563412";
+Error while executing the query
+
+SELECT * FROM pre_enc_num
+Result set:
+1	24197857161011715162171839636988778104	24197857161011715162171839636988778104
+
+----------------------------------------
+SELECT_VARCHAR
+
+22P02=ERROR: invalid input syntax for type numeric: ")";
+Error while executing the query
+
+22P02=ERROR: invalid input syntax for type numeric: ")";
+Error while executing the query
+
+----------------------------------------
+SELECT_TIMESTAMP
+
+22008=ERROR: date/time field value out of range: "0041-30721-13398 30738:13398:30738.201445";
+Error while executing the query
+
+22008=ERROR: date/time field value out of range: "0041-30721-13398 30738:13398:30738.201445";
+Error while executing the query
+
+----------------------------------------
+SELECT_BINARY
+
+22P02=ERROR: invalid input syntax for type numeric: "\x29000178563412785634127856341278563412";
+Error while executing the query
+
+22P02=ERROR: invalid input syntax for type numeric: "\x29000178563412785634127856341278563412";
+Error while executing the query
+disconnecting

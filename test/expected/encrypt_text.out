@@ -1,0 +1,125 @@
+connected
+
+===========ENCRYPT_TEXT_TEST_BASIC_DATA_START===============
+
+SQLPrepare_TEST_START
+
+INSERT_TEST
+SELECT * FROM pre_enc_text
+Result set:
+0	foo	foo
+1	foo	foo
+
+SELECT (c1=c11)::text FROM pre_enc_text
+Result set:
+true
+true
+
+UPDATE_TEST
+SELECT * FROM pre_enc_text
+Result set:
+0	foo	foo
+1	enc	enc
+
+SELECT (c1=c11)::text FROM pre_enc_text
+Result set:
+true
+true
+
+DELETE_TEST
+SELECT * FROM pre_enc_text
+Result set:
+0	foo	foo
+
+SELECT (c1=c11)::text FROM pre_enc_text
+Result set:
+true
+
+SELECT_TEST
+SELECT (c1=c11)::text FROM pre_enc_text WHERE c1
+Result set:
+true
+
+SELECT * FROM pre_enc_text WHERE c1
+Result set:
+0	foo	foo
+
+SELECT * FROM pre_enc_text
+Result set:
+0	foo	foo
+
+SELECT (c1=c11)::text FROM pre_enc_text
+Result set:
+true
+
+SELECT * FROM pre_text_tbl
+Result set:
+0	foo
+
+SELECT (e.c1=t.c1)::text FROM pre_enc_text e NATURAL JOIN pre_text_tbl t
+Result set:
+true
+
+PREPARE_TEST_COMPLETE
+
+----------------------------------------
+SQLDirect_TEST_START
+
+INSERT_TEST
+SELECT * FROM dir_enc_text
+Result set:
+0	foo	foo
+1	bar	bar
+
+SELECT (c1=c11)::text FROM dir_enc_text
+Result set:
+true
+true
+
+UPDATE_TEST
+SELECT * FROM dir_enc_text
+Result set:
+0	foo	foo
+1	enc	enc
+
+SELECT (c1=c11)::text FROM dir_enc_text
+Result set:
+true
+true
+
+DELETE_TEST
+SELECT * FROM dir_enc_text
+Result set:
+0	foo	foo
+
+SELECT (c1=c11)::text FROM dir_enc_text
+Result set:
+true
+
+SELECT_TEST
+
+SELECT * FROM dir_enc_text
+Result set:
+0	foo	foo
+
+SELECT (c1=c11)::text FROM dir_enc_text
+Result set:
+true
+
+SELECT * FROM dir_text_tbl
+Result set:
+0	foo
+
+SELECT (d.c1=t.c1)::text FROM dir_enc_text d NATURAL JOIN dir_text_tbl t
+Result set:
+true
+
+SELECT (p.c1=d.c1)::text FROM dir_enc_text d NATURAL JOIN pre_enc_text p
+Result set:
+true
+
+DIRECT_TEST_COMPLETE
+----------------------------------------
+disconnecting
+
+===========ENCRYPT_TEXT_TEST_BASIC_DATA_END==============

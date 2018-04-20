@@ -1,0 +1,87 @@
+connected
+
+====== diff_DATA ==============
+INSERT_VARCHAR
+
+22007=ERROR: invalid input syntax for type timestamp: "";
+Error while executing the query
+
+22007=ERROR: invalid input syntax for type timestamp: "";
+Error while executing the query
+
+SELECT * FROM pre_enc_timestamp
+Result set:
+1	2017-07-07 05:50:30	2017-07-07 05:50:30
+1	2017-07-08 05:50:30	2017-07-08 05:50:30
+1	2017-07-09 05:50:30	2017-07-09 05:50:30
+1	2017-07-10 05:50:30	2017-07-10 05:50:30
+
+----------------------------------------
+INSERT_NUMERIC
+
+22008=ERROR: date/time field value out of range: "4722582661149325.5254528";
+Error while executing the query
+
+22008=ERROR: date/time field value out of range: "4722582661149325.5254528";
+Error while executing the query
+
+SELECT * FROM pre_enc_timestamp
+Result set:
+1	2017-07-07 05:50:30	2017-07-07 05:50:30
+1	2017-07-08 05:50:30	2017-07-08 05:50:30
+1	2017-07-09 05:50:30	2017-07-09 05:50:30
+1	2017-07-10 05:50:30	2017-07-10 05:50:30
+
+----------------------------------------
+INSERT_BINARY
+
+22007=ERROR: invalid input syntax for type timestamp: "\x";
+Error while executing the query
+
+22007=ERROR: invalid input syntax for type timestamp: "\x";
+Error while executing the query
+
+SELECT * FROM pre_enc_timestamp
+Result set:
+1	2017-07-07 05:50:30	2017-07-07 05:50:30
+1	2017-07-08 05:50:30	2017-07-08 05:50:30
+1	2017-07-09 05:50:30	2017-07-09 05:50:30
+1	2017-07-10 05:50:30	2017-07-10 05:50:30
+
+----------------------------------------
+SELECT_VARCHAR
+
+22007=ERROR: invalid input syntax for type timestamp: "";
+Error while executing the query
+
+22007=ERROR: invalid input syntax for type timestamp: "";
+Error while executing the query
+
+----------------------------------------
+SELECT_NUMERIC
+
+22008=ERROR: date/time field value out of range: "4722582661149325.5251712";
+Error while executing the query
+
+22008=ERROR: date/time field value out of range: "4722582661149325.5251712";
+Error while executing the query
+
+----------------------------------------
+SELECT_BINARY
+
+22007=ERROR: invalid input syntax for type timestamp: "\x";
+Error while executing the query
+
+22007=ERROR: invalid input syntax for type timestamp: "\x";
+Error while executing the query
+disconnecting
+
+log mask confirm test
+
+---------- LOG_CHECK_START ----------
+
+---------- LOG_CHECK_END ----------
+
+----------LOG_DELETE_START----------
+
+----------LOG_DELETE_END----------

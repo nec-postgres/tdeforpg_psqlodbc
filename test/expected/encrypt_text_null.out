@@ -1,0 +1,162 @@
+connected
+
+===========ENCRYPT_TEXT_TEST_NULL_DATA_START===============
+
+SQLPrepare_TEST_START
+
+INSERT_TEST
+SELECT * FROM pre_enc_text
+Result set:
+0	NULL	NULL
+1	NULL	NULL
+
+SELECT (c1=c11)::text FROM pre_enc_text
+Result set:
+NULL
+NULL
+
+UPDATE_TEST
+SELECT * FROM pre_enc_text
+Result set:
+0	NULL	NULL
+1	NULL	NULL
+
+SELECT (c1=c11)::text FROM pre_enc_text
+Result set:
+NULL
+NULL
+
+DELETE_TEST
+SELECT * FROM pre_enc_text
+Result set:
+0	NULL	NULL
+1	NULL	NULL
+
+SELECT (c1=c11)::text FROM pre_enc_text
+Result set:
+NULL
+NULL
+
+SELECT_TEST
+SELECT * FROM pre_enc_text
+Result set:
+0	NULL	NULL
+1	NULL	NULL
+
+SELECT (c1=c11)::text FROM pre_enc_text
+Result set:
+NULL
+NULL
+
+SELECT (c1=c11)::text,c1=c11 FROM pre_enc_text
+Result set:
+NULL	NULL
+NULL	NULL
+
+SELECT * FROM pre_text_tbl
+Result set:
+0	NULL
+1	NULL
+
+SELECT (e.c1=t.c1)::text FROM pre_enc_text e NATURAL JOIN pre_text_tbl t
+Result set:
+
+PREPARE_TEST_COMPLETE
+
+----------------------------------------
+SQLDirect_TEST_START
+
+INSERT_TEST
+SELECT * FROM dir_enc_text
+Result set:
+0	foo	foo
+1	NULL	NULL
+2	NULL	NULL
+
+SELECT (c1=c11)::text FROM dir_enc_text
+Result set:
+true
+NULL
+NULL
+
+UPDATE_TEST
+SELECT * FROM dir_enc_text
+Result set:
+0	foo	foo
+1	NULL	NULL
+2	enc	enc
+
+SELECT (c1=c11)::text FROM dir_enc_text
+Result set:
+true
+NULL
+true
+
+SELECT * FROM dir_enc_text
+Result set:
+0	foo	foo
+1	NULL	NULL
+2	NULL	NULL
+
+SELECT (c1=c11)::text FROM dir_enc_text
+Result set:
+true
+NULL
+NULL
+
+SELECT * FROM dir_enc_text
+Result set:
+0	foo	foo
+1	NULL	NULL
+2	NULL	NULL
+
+SELECT (c1=c11)::text FROM dir_enc_text
+Result set:
+true
+NULL
+NULL
+
+DELETE_TEST
+SELECT * FROM dir_enc_text
+Result set:
+0	foo	foo
+1	NULL	NULL
+
+SELECT (c1=c11)::text FROM dir_enc_text
+Result set:
+true
+NULL
+
+SELECT_TEST
+
+SELECT * FROM dir_enc_text WHERE c1 IS NULL
+Result set:
+1	NULL	NULL
+
+SELECT * FROM dir_enc_text
+Result set:
+0	foo	foo
+1	NULL	NULL
+
+SELECT (c1=c11)::text FROM dir_enc_text
+Result set:
+true
+NULL
+
+SELECT * FROM dir_text_tbl
+Result set:
+0	foo
+1	NULL
+
+SELECT (d.c1=t.c1)::text FROM dir_enc_text d NATURAL JOIN dir_text_tbl t
+Result set:
+true
+
+SELECT (p.c1=d.c1)::text FROM dir_enc_text d NATURAL JOIN pre_enc_text p
+Result set:
+
+DIRECT_TEST_COMPLETE
+----------------------------------------
+disconnecting
+
+===========ENCRYPT_TEXT_TEST_NULL_DATA_END==============

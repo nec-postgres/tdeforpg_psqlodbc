@@ -1,0 +1,116 @@
+connected
+
+====== No_disable_log==============
+PREPARE_INSERT TEST
+P0001=ERROR: TDE-E0036 you must call cipher_key_disable_log function first[01].;
+Error while executing the query
+
+58030=ERROR: TDE-E0016 could not encrypt data, because key was not set[03];
+Error while executing the query
+
+PREPARE_SELECT_TEST
+P0001=ERROR: TDE-E0036 you must call cipher_key_disable_log function first[01].;
+Error while executing the query
+
+58030=ERROR: TDE-E0016 could not encrypt data, because key was not set[03];
+Error while executing the query
+
+----------------------------------------
+DIRECT_INSERT TEST
+P0001=ERROR: TDE-E0036 you must call cipher_key_disable_log function first[01].;
+Error while executing the query
+
+58030=ERROR: TDE-E0016 could not encrypt data, because key was not set[03];
+Error while executing the query
+
+DIRECT_SELECT TEST
+P0001=ERROR: TDE-E0036 you must call cipher_key_disable_log function first[01].;
+Error while executing the query
+
+58030=ERROR: TDE-E0017 could not decrypt data, because key was not set[03];
+Error while executing the query
+
+====== No_begin_session==============
+PREPARE_INSERT TEST
+58030=ERROR: TDE-E0016 could not encrypt data, because key was not set[03];
+Error while executing the query
+
+PREPARE_SELECT_TEST
+58030=ERROR: TDE-E0016 could not encrypt data, because key was not set[03];
+Error while executing the query
+
+----------------------------------------
+DIRECT_INSERT TEST
+58030=ERROR: TDE-E0016 could not encrypt data, because key was not set[03];
+Error while executing the query
+
+DIRECT_SELECT TEST
+58030=ERROR: TDE-E0017 could not decrypt data, because key was not set[03];
+Error while executing the query
+
+====== diff_DATA ==============
+INSERT_VARCHAR
+
+SELECT * FROM pre_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+2	010203040506070800	010203040506070800
+0	010203040506	010203040506
+2	0102030405060708	0102030405060708
+
+----------------------------------------
+INSERT_NUMERIC
+
+SELECT * FROM pre_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+2	010203040506070800	010203040506070800
+0	010203040506	010203040506
+2	0102030405060708	0102030405060708
+3	302e3030	302e3030
+
+----------------------------------------
+INSERT_TIMESTAMP
+
+SELECT * FROM pre_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+2	010203040506070800	010203040506070800
+0	010203040506	010203040506
+2	0102030405060708	0102030405060708
+3	302e3030	302e3030
+4	303531332d313032372d3135343120323035353	303531332d313032372d3135343120323035353
+
+----------------------------------------
+SELECT_VARCHAR
+
+SELECT * FROM pre_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+2	0102030405060708	0102030405060708
+
+SELECT * FROM pre_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+2	0102030405060708	0102030405060708
+
+----------------------------------------
+SELECT_NUMERIC
+
+SELECT * FROM pre_enc_bytea
+Result set:
+3	302e3030	302e3030
+
+SELECT * FROM pre_enc_bytea
+Result set:
+3	302e3030	302e3030
+
+----------------------------------------
+SELECT_TIMESTAMP
+
+22008=ERROR: date/time field value out of range: "0513-1027-1541 2055:00:00";
+Error while executing the query
+
+22008=ERROR: date/time field value out of range: "0513-1027-1541 2055:00:00";
+Error while executing the query
+disconnecting

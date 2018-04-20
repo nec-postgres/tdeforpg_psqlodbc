@@ -1,0 +1,130 @@
+connected
+
+===========ENCRYPT_TIMESTAMP_TEST_NULL_DATA_START===============
+
+SQLPrepare_TEST_START
+
+INSERT_TEST
+SELECT * FROM pre_enc_timestamp
+Result set:
+
+SELECT (c1=c11)::text FROM pre_enc_timestamp
+Result set:
+
+UPDATE_TEST
+SELECT * FROM pre_enc_timestamp
+Result set:
+
+SELECT (c1=c11)::text FROM pre_enc_timestamp
+Result set:
+
+DELETE_TEST
+SELECT * FROM pre_enc_timestamp
+Result set:
+
+SELECT (c1=c11)::text FROM pre_enc_timestamp
+Result set:
+
+SELECT_TEST
+SELECT * FROM pre_enc_timestamp
+Result set:
+
+SELECT (c1=c11)::text FROM pre_enc_timestamp
+Result set:
+
+SELECT (c1=c11)::text,c1=c11 FROM pre_enc_timestamp
+Result set:
+
+SELECT * FROM pre_timestamp_tbl
+Result set:
+
+SELECT (e.c1=t.c1)::text FROM pre_enc_timestamp e NATURAL JOIN pre_timestamp_tbl t
+Result set:
+
+PREPARE_TEST_COMPLETE
+
+----------------------------------------
+DIRECT_TEST_START
+
+INSERT_TEST
+SELECT * FROM dir_enc_timestamp
+Result set:
+0	2017-07-07 05:50:30	2017-07-07 05:50:30
+1	NULL	NULL
+2	NULL	NULL
+
+SELECT (c1=c11)::text FROM dir_enc_timestamp
+Result set:
+true
+NULL
+NULL
+
+UPDATE_TEST
+SELECT * FROM dir_enc_timestamp
+Result set:
+0	2017-07-07 05:50:30	2017-07-07 05:50:30
+1	NULL	NULL
+2	2017-07-07 05:50:30	2017-07-07 05:50:30
+
+SELECT (c1=c11)::text FROM dir_enc_timestamp
+Result set:
+true
+NULL
+true
+
+SELECT * FROM dir_enc_timestamp
+Result set:
+0	2017-07-07 05:50:30	2017-07-07 05:50:30
+1	NULL	NULL
+2	NULL	NULL
+
+SELECT (c1=c11)::text FROM dir_enc_timestamp
+Result set:
+true
+NULL
+NULL
+
+DELETE_TEST
+SELECT * FROM dir_enc_timestamp
+Result set:
+0	2017-07-07 05:50:30	2017-07-07 05:50:30
+1	NULL	NULL
+
+SELECT (c1=c11)::text FROM dir_enc_timestamp
+Result set:
+true
+NULL
+
+SELECT_TEST
+
+SELECT * FROM dir_enc_timestamp WHERE c1 IS NULL
+Result set:
+1	NULL	NULL
+
+SELECT * FROM dir_enc_timestamp
+Result set:
+0	2017-07-07 05:50:30	2017-07-07 05:50:30
+1	NULL	NULL
+
+SELECT (c1=c11)::text FROM dir_enc_timestamp
+Result set:
+true
+NULL
+
+SELECT * FROM dir_timestamp_tbl
+Result set:
+0	2017-07-07 05:50:30
+1	NULL
+
+SELECT (e.c1=t.c1)::text FROM dir_enc_timestamp e NATURAL JOIN dir_timestamp_tbl t
+Result set:
+true
+
+SELECT (p.c1=d.c1)::text FROM dir_enc_timestamp d NATURAL JOIN pre_enc_timestamp p
+Result set:
+
+DIRECT_TEST_COMPLETE
+----------------------------------------
+disconnecting
+
+===========ENCRYPT_TIMESTAMP_TEST_NULL_DATA_END===============

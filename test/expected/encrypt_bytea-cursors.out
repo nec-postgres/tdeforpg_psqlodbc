@@ -1,0 +1,18 @@
+connected
+SQL_CURSOR_COMMIT_BEHAVIOR: SQL_CB_PRESERVE
+SQL_CURSOR_ROLLBACK_BEHAVIOR: SQL_CB_CLOSE
+
+666f6f 666f6f 666f6f 666f6f 666f6f 666f6f 666f6f 666f6f 666f6f 666f6f 666f6f 666f6f 666f6f 666f6f 666f6f 666f6f 666f6f 666f6f 666f6f 666f6f ... 666f6f 666f6f 666f6f 666f6f 
+Fetched 3210 rows altogether
+
+666f6f 666f6f 666f6f 666f6f 666f6f 666f6f 666f6f 666f6f 666f6f 666f6f 
+Commit
+666f6f 666f6f 666f6f 666f6f 666f6f 666f6f 666f6f 666f6f 666f6f 666f6f ... 666f6f 666f6f 666f6f 666f6f 
+Fetched 3210 rows altogether
+
+666f6f 666f6f 666f6f 666f6f 666f6f 666f6f 666f6f 666f6f 666f6f 666f6f 
+Rollback
+SQLFetch failed with HY010 (which probably means that the cursor was closed at commit/rollback)
+Fetched 10 rows altogether
+
+disconnecting

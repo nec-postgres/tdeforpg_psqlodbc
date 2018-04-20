@@ -1,0 +1,1710 @@
+
+BI=-5 TEST
+
+---------- BI=-5 Start ----------
+connected
+
+SQLPrepare_TEST_START
+
+INSERT_TEST
+SELECT * FROM pre_enc_bytea
+Result set:
+0	01020304050607	01020304050607
+1	0102030405060708	0102030405060708
+2	010203040506070800	010203040506070800
+
+SELECT (c1=c11)::text FROM pre_enc_bytea
+Result set:
+true
+true
+true
+
+UPDATE_TEST
+
+SELECT * FROM pre_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+2	010203040506070800	010203040506070800
+0	010203040506	010203040506
+
+SELECT id, (c1=c11)::text FROM pre_enc_bytea
+Result set:
+1	true
+2	true
+0	true
+
+DELETE_TEST
+
+SELECT * FROM pre_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+2	010203040506070800	010203040506070800
+0	010203040506	010203040506
+
+SELECT (c1=c11)::text FROM pre_enc_bytea
+Result set:
+true
+true
+true
+
+SELECT_TEST
+SELECT c1=c11 FROM pre_enc_bytea WHERE c1
+Result set:
+true
+
+SELECT * FROM pre_enc_bytea WHERE c1
+Result set:
+1	0102030405060708	0102030405060708
+
+SELECT * FROM pre_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+2	010203040506070800	010203040506070800
+0	010203040506	010203040506
+
+SELECT (c1=c11)::text,c1=c11 FROM pre_enc_bytea
+Result set:
+true	1
+true	1
+true	1
+
+SELECT * FROM pre_bytea_tbl UNION ALL SELECT id,c1 FROM pre_enc_bytea
+Result set:
+1	0102030405060708
+2	010203040506070800
+0	010203040506
+1	0102030405060708
+2	010203040506070800
+0	010203040506
+
+SELECT (e.c1=t.c1)::text FROM pre_enc_bytea e NATURAL JOIN pre_bytea_tbl t
+Result set:
+true
+true
+true
+
+PREPARE_TEST_COMPLETE
+
+----------------------------------------
+SQLDirect_TEST_START
+
+INSERT_TEST
+SELECT * FROM dir_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+2	01020304050607	01020304050607
+
+SELECT (c1=c11)::text FROM dir_enc_bytea
+Result set:
+true
+true
+
+UPDATE_TEST
+SELECT * FROM dir_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+2	010203040506	010203040506
+
+SELECT (c1=c11)::text FROM dir_enc_bytea
+Result set:
+true
+true
+
+DELETE_TEST
+SELECT * FROM dir_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+
+SELECT * FROM dir_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+
+SELECT (c1=c11)::text FROM dir_enc_bytea
+Result set:
+true
+
+SELECT_TEST
+SELECT * FROM dir_enc_bytea WHERE c1='\x0102030405060708'
+Result set:
+1	0102030405060708	0102030405060708
+
+SELECT * FROM pre_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+2	010203040506070800	010203040506070800
+0	010203040506	010203040506
+
+SELECT * FROM dir_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+
+SELECT (c1=c11)::text FROM dir_enc_bytea
+Result set:
+true
+
+SELECT * FROM dir_bytea_tbl UNION ALL SELECT id,c1 FROM dir_enc_bytea
+Result set:
+1	0102030405060708
+1	0102030405060708
+
+SELECT (e.c1=t.c1)::text FROM dir_enc_bytea e NATURAL JOIN dir_bytea_tbl t
+Result set:
+true
+
+DIRECTE_TEST_COMPLETE
+----------------------------------------
+
+SQLPrepare_TEST_START
+
+INSERT_TEST
+SELECT * FROM pre_enc_text
+Result set:
+0	foo	foo
+1	bar	bar
+2	tde	tde
+
+SELECT (c1=c11)::text FROM pre_enc_text
+Result set:
+true
+true
+true
+
+UPDATE_TEST
+SELECT * FROM pre_enc_text
+Result set:
+0	foo	foo
+1	bar	bar
+2	enc	enc
+
+SELECT (c1=c11)::text FROM pre_enc_text
+Result set:
+true
+true
+true
+
+DELETE_TEST
+SELECT * FROM pre_enc_text
+Result set:
+0	foo	foo
+1	bar	bar
+
+SELECT (c1=c11)::text FROM pre_enc_text
+Result set:
+true
+true
+
+SELECT_TEST
+SELECT (c1=c11)::text FROM pre_enc_text WHERE c1
+Result set:
+true
+
+SELECT * FROM pre_enc_text
+Result set:
+0	foo	foo
+1	bar	bar
+
+SELECT (c1=c11)::text FROM pre_enc_text
+Result set:
+true
+true
+
+SELECT (c1=c11)::text,c1=c11 FROM pre_enc_text
+Result set:
+true	1
+true	1
+
+SELECT * FROM pre_text_tbl
+Result set:
+0	foo
+1	bar
+
+SELECT (e.c1=t.c1)::text FROM pre_enc_text e NATURAL JOIN pre_text_tbl t
+Result set:
+true
+true
+
+PREPARE_TEST_COMPLETE
+
+----------------------------------------
+SQLDirect_TEST_START
+
+INSERT_TEST
+SELECT * FROM dir_enc_text
+Result set:
+0	foo	foo
+1	bar	bar
+
+SELECT (c1=c11)::text FROM dir_enc_text
+Result set:
+true
+true
+
+UPDATE_TEST
+SELECT * FROM dir_enc_text
+Result set:
+0	foo	foo
+1	enc	enc
+
+SELECT (c1=c11)::text FROM dir_enc_text
+Result set:
+true
+true
+
+DELETE_TEST
+SELECT * FROM dir_enc_text
+Result set:
+0	foo	foo
+
+SELECT (c1=c11)::text FROM dir_enc_text
+Result set:
+true
+
+SELECT_TEST
+
+SELECT * FROM dir_enc_text
+Result set:
+0	foo	foo
+
+SELECT * FROM dir_enc_text
+Result set:
+0	foo	foo
+
+SELECT (c1=c11)::text FROM dir_enc_text
+Result set:
+true
+
+SELECT * FROM dir_text_tbl
+Result set:
+0	foo
+
+SELECT (d.c1=t.c1)::text FROM dir_enc_text d NATURAL JOIN dir_text_tbl t
+Result set:
+true
+
+SELECT (p.c1=d.c1)::text FROM dir_enc_text d NATURAL JOIN pre_enc_text p
+Result set:
+true
+
+DIRECT_TEST_COMPLETE
+----------------------------------------
+
+SQLPrepare_TEST_START
+
+INSERT_TEST
+SELECT * FROM pre_enc_num
+Result set:
+1	24197857161011715162171839636988778104	24197857161011715162171839636988778104
+2	12345678901234567890123456789012345678	12345678901234567890123456789012345678
+
+SELECT (c1=c11)::text FROM pre_enc_num
+Result set:
+true
+true
+
+UPDATE_TEST
+SELECT * FROM pre_enc_num
+Result set:
+1	24197857161011715162171839636988778104	24197857161011715162171839636988778104
+2	25.212	25.212
+
+SELECT (c1=c11)::text FROM pre_enc_num
+Result set:
+true
+true
+
+DELETE_TEST
+SELECT * FROM pre_enc_num
+Result set:
+1	24197857161011715162171839636988778104	24197857161011715162171839636988778104
+
+SELECT (c1=c11)::text FROM pre_enc_num
+Result set:
+true
+
+SELECT_TEST
+SELECT (c1=c11)::text FROM pre_enc_num
+Result set:
+true
+
+SELECT * FROM pre_enc_num
+Result set:
+1	24197857161011715162171839636988778104	24197857161011715162171839636988778104
+
+SELECT c1=c11 FROM pre_enc_num
+Result set:
+1
+
+SELECT (c1=c11)::text,c1=c11 FROM pre_enc_num
+Result set:
+true	1
+
+SELECT * FROM pre_num_tbl
+Result set:
+1	24197857161011715162171839636988778104
+
+SELECT (e.c1=t.c1)::text FROM pre_enc_num e NATURAL JOIN pre_num_tbl t
+Result set:
+true
+
+PREPARE_TEST_COMPLETE
+
+----------------------------------------
+DIRECT_TEST_START
+
+INSERT_TEST
+SELECT * FROM dir_enc_num
+Result set:
+1	24197857161011715162171839636988778104	24197857161011715162171839636988778104
+2	12345678901234567890123456789012345678	12345678901234567890123456789012345678
+
+SELECT (c1=c11)::text FROM dir_enc_num
+Result set:
+true
+true
+
+UPDATE_TEST
+SELECT * FROM dir_enc_num
+Result set:
+1	24197857161011715162171839636988778104	24197857161011715162171839636988778104
+2	25.212	25.212
+
+SELECT (c1=c11)::text FROM dir_enc_num
+Result set:
+true
+true
+
+DELETE_TEST
+SELECT * FROM dir_enc_num
+Result set:
+1	24197857161011715162171839636988778104	24197857161011715162171839636988778104
+
+SELECT (c1=c11)::text FROM dir_enc_num
+Result set:
+true
+
+SELECT_TEST
+SELECT * FROM dir_enc_num
+Result set:
+1	24197857161011715162171839636988778104	24197857161011715162171839636988778104
+
+SELECT * FROM dir_enc_num
+Result set:
+1	24197857161011715162171839636988778104	24197857161011715162171839636988778104
+
+SELECT (c1=c11)::text FROM dir_enc_num
+Result set:
+true
+
+SELECT * FROM dir_num_tbl
+Result set:
+1	24197857161011715162171839636988778104
+
+SELECT (e.c1=t.c1)::text FROM dir_enc_num e NATURAL JOIN dir_num_tbl t
+Result set:
+true
+
+SELECT (p.c1=d.c1)::text FROM dir_enc_num d NATURAL JOIN pre_enc_num p
+Result set:
+true
+
+DIRECT_TEST_COMPLETE
+----------------------------------------
+
+SQLPrepare_TEST_START
+
+INSERT_TEST
+SELECT * FROM pre_enc_timestamp
+Result set:
+1	2017-07-07 05:50:30	2017-07-07 05:50:30
+1	2017-07-08 05:50:30	2017-07-08 05:50:30
+1	2017-07-09 05:50:30	2017-07-09 05:50:30
+1	2017-07-10 05:50:30	2017-07-10 05:50:30
+1	2017-07-11 05:50:30	2017-07-11 05:50:30
+
+SELECT (c1=c11)::text FROM pre_enc_timestamp
+Result set:
+true
+true
+true
+true
+true
+
+UPDATE_TEST
+SELECT * FROM pre_enc_timestamp
+Result set:
+1	2017-07-07 05:50:30	2017-07-07 05:50:30
+1	2017-07-08 05:50:30	2017-07-08 05:50:30
+1	2017-07-09 05:50:30	2017-07-09 05:50:30
+1	2017-07-10 05:50:30	2017-07-10 05:50:30
+1	2017-07-12 05:50:30	2017-07-12 05:50:30
+
+SELECT (c1=c11)::text FROM pre_enc_timestamp
+Result set:
+true
+true
+true
+true
+true
+
+DELETE_TEST
+SELECT * FROM pre_enc_timestamp
+Result set:
+1	2017-07-07 05:50:30	2017-07-07 05:50:30
+1	2017-07-08 05:50:30	2017-07-08 05:50:30
+1	2017-07-09 05:50:30	2017-07-09 05:50:30
+1	2017-07-10 05:50:30	2017-07-10 05:50:30
+
+SELECT (c1=c11)::text FROM pre_enc_timestamp
+Result set:
+true
+true
+true
+true
+
+SELECT_TEST
+SELECT (c1=c11)::text FROM pre_enc_timestamp
+Result set:
+true
+
+SELECT * FROM pre_enc_timestamp
+Result set:
+1	2017-07-07 05:50:30	2017-07-07 05:50:30
+1	2017-07-08 05:50:30	2017-07-08 05:50:30
+1	2017-07-09 05:50:30	2017-07-09 05:50:30
+1	2017-07-10 05:50:30	2017-07-10 05:50:30
+
+SELECT (c1=c11)::text FROM pre_enc_timestamp
+Result set:
+true
+true
+true
+true
+
+SELECT (c1=c11)::text,c1=c11 FROM pre_enc_timestamp
+Result set:
+true	1
+true	1
+true	1
+true	1
+
+SELECT * FROM pre_timestamp_tbl
+Result set:
+1	2017-07-07 05:50:30
+1	2017-07-08 05:50:30
+1	2017-07-09 05:50:30
+1	2017-07-10 05:50:30
+
+SELECT (e.c1=t.c1)::text FROM pre_enc_timestamp e NATURAL JOIN pre_timestamp_tbl t
+Result set:
+true
+true
+true
+true
+
+PREPARE_TEST_COMPLETE
+
+----------------------------------------
+DIRECT_TEST_START
+
+INSERT_TEST
+SELECT * FROM dir_enc_timestamp
+Result set:
+1	2017-07-07 05:50:30	2017-07-07 05:50:30
+1	2017-07-08 05:50:30	2017-07-08 05:50:30
+
+SELECT (c1=c11)::text FROM dir_enc_timestamp
+Result set:
+true
+true
+
+UPDATE_TEST
+SELECT * FROM dir_enc_timestamp
+Result set:
+1	2017-07-07 05:50:30	2017-07-07 05:50:30
+1	2017-07-12 05:50:30	2017-07-12 05:50:30
+
+SELECT (c1=c11)::text FROM dir_enc_timestamp
+Result set:
+true
+true
+
+DELETE_TEST
+SELECT * FROM dir_enc_timestamp
+Result set:
+1	2017-07-07 05:50:30	2017-07-07 05:50:30
+
+SELECT (c1=c11)::text FROM dir_enc_timestamp
+Result set:
+true
+
+SELECT_TEST
+
+SELECT * FROM dir_enc_timestamp
+Result set:
+1	2017-07-07 05:50:30	2017-07-07 05:50:30
+
+SELECT * FROM dir_enc_timestamp
+Result set:
+1	2017-07-07 05:50:30	2017-07-07 05:50:30
+
+SELECT (c1=c11)::text FROM dir_enc_timestamp
+Result set:
+true
+
+SELECT * FROM dir_timestamp_tbl
+Result set:
+1	2017-07-07 05:50:30
+
+SELECT (e.c1=t.c1)::text FROM dir_enc_timestamp e NATURAL JOIN dir_timestamp_tbl t
+Result set:
+true
+
+SELECT (p.c1=d.c1)::text FROM dir_enc_timestamp d NATURAL JOIN pre_enc_timestamp p
+Result set:
+true
+
+DIRECT_TEST_COMPLETE
+----------------------------------------
+disconnecting
+
+---------- BI=-5 End ----------
+
+BI=2 TEST
+
+---------- BI=2 Start ----------
+connected
+
+SQLPrepare_TEST_START
+
+INSERT_TEST
+SELECT * FROM pre_enc_bytea
+Result set:
+0	01020304050607	01020304050607
+1	0102030405060708	0102030405060708
+2	010203040506070800	010203040506070800
+
+SELECT (c1=c11)::text FROM pre_enc_bytea
+Result set:
+true
+true
+true
+
+UPDATE_TEST
+
+SELECT * FROM pre_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+2	010203040506070800	010203040506070800
+0	010203040506	010203040506
+
+SELECT id, (c1=c11)::text FROM pre_enc_bytea
+Result set:
+1	true
+2	true
+0	true
+
+DELETE_TEST
+
+SELECT * FROM pre_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+2	010203040506070800	010203040506070800
+0	010203040506	010203040506
+
+SELECT (c1=c11)::text FROM pre_enc_bytea
+Result set:
+true
+true
+true
+
+SELECT_TEST
+SELECT c1=c11 FROM pre_enc_bytea WHERE c1
+Result set:
+true
+
+SELECT * FROM pre_enc_bytea WHERE c1
+Result set:
+1	0102030405060708	0102030405060708
+
+SELECT * FROM pre_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+2	010203040506070800	010203040506070800
+0	010203040506	010203040506
+
+SELECT (c1=c11)::text,c1=c11 FROM pre_enc_bytea
+Result set:
+true	1
+true	1
+true	1
+
+SELECT * FROM pre_bytea_tbl UNION ALL SELECT id,c1 FROM pre_enc_bytea
+Result set:
+1	0102030405060708
+2	010203040506070800
+0	010203040506
+1	0102030405060708
+2	010203040506070800
+0	010203040506
+
+SELECT (e.c1=t.c1)::text FROM pre_enc_bytea e NATURAL JOIN pre_bytea_tbl t
+Result set:
+true
+true
+true
+
+PREPARE_TEST_COMPLETE
+
+----------------------------------------
+SQLDirect_TEST_START
+
+INSERT_TEST
+SELECT * FROM dir_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+2	01020304050607	01020304050607
+
+SELECT (c1=c11)::text FROM dir_enc_bytea
+Result set:
+true
+true
+
+UPDATE_TEST
+SELECT * FROM dir_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+2	010203040506	010203040506
+
+SELECT (c1=c11)::text FROM dir_enc_bytea
+Result set:
+true
+true
+
+DELETE_TEST
+SELECT * FROM dir_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+
+SELECT * FROM dir_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+
+SELECT (c1=c11)::text FROM dir_enc_bytea
+Result set:
+true
+
+SELECT_TEST
+SELECT * FROM dir_enc_bytea WHERE c1='\x0102030405060708'
+Result set:
+1	0102030405060708	0102030405060708
+
+SELECT * FROM pre_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+2	010203040506070800	010203040506070800
+0	010203040506	010203040506
+
+SELECT * FROM dir_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+
+SELECT (c1=c11)::text FROM dir_enc_bytea
+Result set:
+true
+
+SELECT * FROM dir_bytea_tbl UNION ALL SELECT id,c1 FROM dir_enc_bytea
+Result set:
+1	0102030405060708
+1	0102030405060708
+
+SELECT (e.c1=t.c1)::text FROM dir_enc_bytea e NATURAL JOIN dir_bytea_tbl t
+Result set:
+true
+
+DIRECTE_TEST_COMPLETE
+----------------------------------------
+
+SQLPrepare_TEST_START
+
+INSERT_TEST
+SELECT * FROM pre_enc_text
+Result set:
+0	foo	foo
+1	bar	bar
+2	tde	tde
+
+SELECT (c1=c11)::text FROM pre_enc_text
+Result set:
+true
+true
+true
+
+UPDATE_TEST
+SELECT * FROM pre_enc_text
+Result set:
+0	foo	foo
+1	bar	bar
+2	enc	enc
+
+SELECT (c1=c11)::text FROM pre_enc_text
+Result set:
+true
+true
+true
+
+DELETE_TEST
+SELECT * FROM pre_enc_text
+Result set:
+0	foo	foo
+1	bar	bar
+
+SELECT (c1=c11)::text FROM pre_enc_text
+Result set:
+true
+true
+
+SELECT_TEST
+SELECT (c1=c11)::text FROM pre_enc_text WHERE c1
+Result set:
+true
+
+SELECT * FROM pre_enc_text
+Result set:
+0	foo	foo
+1	bar	bar
+
+SELECT (c1=c11)::text FROM pre_enc_text
+Result set:
+true
+true
+
+SELECT (c1=c11)::text,c1=c11 FROM pre_enc_text
+Result set:
+true	1
+true	1
+
+SELECT * FROM pre_text_tbl
+Result set:
+0	foo
+1	bar
+
+SELECT (e.c1=t.c1)::text FROM pre_enc_text e NATURAL JOIN pre_text_tbl t
+Result set:
+true
+true
+
+PREPARE_TEST_COMPLETE
+
+----------------------------------------
+SQLDirect_TEST_START
+
+INSERT_TEST
+SELECT * FROM dir_enc_text
+Result set:
+0	foo	foo
+1	bar	bar
+
+SELECT (c1=c11)::text FROM dir_enc_text
+Result set:
+true
+true
+
+UPDATE_TEST
+SELECT * FROM dir_enc_text
+Result set:
+0	foo	foo
+1	enc	enc
+
+SELECT (c1=c11)::text FROM dir_enc_text
+Result set:
+true
+true
+
+DELETE_TEST
+SELECT * FROM dir_enc_text
+Result set:
+0	foo	foo
+
+SELECT (c1=c11)::text FROM dir_enc_text
+Result set:
+true
+
+SELECT_TEST
+
+SELECT * FROM dir_enc_text
+Result set:
+0	foo	foo
+
+SELECT * FROM dir_enc_text
+Result set:
+0	foo	foo
+
+SELECT (c1=c11)::text FROM dir_enc_text
+Result set:
+true
+
+SELECT * FROM dir_text_tbl
+Result set:
+0	foo
+
+SELECT (d.c1=t.c1)::text FROM dir_enc_text d NATURAL JOIN dir_text_tbl t
+Result set:
+true
+
+SELECT (p.c1=d.c1)::text FROM dir_enc_text d NATURAL JOIN pre_enc_text p
+Result set:
+true
+
+DIRECT_TEST_COMPLETE
+----------------------------------------
+
+SQLPrepare_TEST_START
+
+INSERT_TEST
+SELECT * FROM pre_enc_num
+Result set:
+1	24197857161011715162171839636988778104	24197857161011715162171839636988778104
+2	12345678901234567890123456789012345678	12345678901234567890123456789012345678
+
+SELECT (c1=c11)::text FROM pre_enc_num
+Result set:
+true
+true
+
+UPDATE_TEST
+SELECT * FROM pre_enc_num
+Result set:
+1	24197857161011715162171839636988778104	24197857161011715162171839636988778104
+2	25.212	25.212
+
+SELECT (c1=c11)::text FROM pre_enc_num
+Result set:
+true
+true
+
+DELETE_TEST
+SELECT * FROM pre_enc_num
+Result set:
+1	24197857161011715162171839636988778104	24197857161011715162171839636988778104
+
+SELECT (c1=c11)::text FROM pre_enc_num
+Result set:
+true
+
+SELECT_TEST
+SELECT (c1=c11)::text FROM pre_enc_num
+Result set:
+true
+
+SELECT * FROM pre_enc_num
+Result set:
+1	24197857161011715162171839636988778104	24197857161011715162171839636988778104
+
+SELECT c1=c11 FROM pre_enc_num
+Result set:
+1
+
+SELECT (c1=c11)::text,c1=c11 FROM pre_enc_num
+Result set:
+true	1
+
+SELECT * FROM pre_num_tbl
+Result set:
+1	24197857161011715162171839636988778104
+
+SELECT (e.c1=t.c1)::text FROM pre_enc_num e NATURAL JOIN pre_num_tbl t
+Result set:
+true
+
+PREPARE_TEST_COMPLETE
+
+----------------------------------------
+DIRECT_TEST_START
+
+INSERT_TEST
+SELECT * FROM dir_enc_num
+Result set:
+1	24197857161011715162171839636988778104	24197857161011715162171839636988778104
+2	12345678901234567890123456789012345678	12345678901234567890123456789012345678
+
+SELECT (c1=c11)::text FROM dir_enc_num
+Result set:
+true
+true
+
+UPDATE_TEST
+SELECT * FROM dir_enc_num
+Result set:
+1	24197857161011715162171839636988778104	24197857161011715162171839636988778104
+2	25.212	25.212
+
+SELECT (c1=c11)::text FROM dir_enc_num
+Result set:
+true
+true
+
+DELETE_TEST
+SELECT * FROM dir_enc_num
+Result set:
+1	24197857161011715162171839636988778104	24197857161011715162171839636988778104
+
+SELECT (c1=c11)::text FROM dir_enc_num
+Result set:
+true
+
+SELECT_TEST
+SELECT * FROM dir_enc_num
+Result set:
+1	24197857161011715162171839636988778104	24197857161011715162171839636988778104
+
+SELECT * FROM dir_enc_num
+Result set:
+1	24197857161011715162171839636988778104	24197857161011715162171839636988778104
+
+SELECT (c1=c11)::text FROM dir_enc_num
+Result set:
+true
+
+SELECT * FROM dir_num_tbl
+Result set:
+1	24197857161011715162171839636988778104
+
+SELECT (e.c1=t.c1)::text FROM dir_enc_num e NATURAL JOIN dir_num_tbl t
+Result set:
+true
+
+SELECT (p.c1=d.c1)::text FROM dir_enc_num d NATURAL JOIN pre_enc_num p
+Result set:
+true
+
+DIRECT_TEST_COMPLETE
+----------------------------------------
+
+SQLPrepare_TEST_START
+
+INSERT_TEST
+SELECT * FROM pre_enc_timestamp
+Result set:
+1	2017-07-07 05:50:30	2017-07-07 05:50:30
+1	2017-07-08 05:50:30	2017-07-08 05:50:30
+1	2017-07-09 05:50:30	2017-07-09 05:50:30
+1	2017-07-10 05:50:30	2017-07-10 05:50:30
+1	2017-07-11 05:50:30	2017-07-11 05:50:30
+
+SELECT (c1=c11)::text FROM pre_enc_timestamp
+Result set:
+true
+true
+true
+true
+true
+
+UPDATE_TEST
+SELECT * FROM pre_enc_timestamp
+Result set:
+1	2017-07-07 05:50:30	2017-07-07 05:50:30
+1	2017-07-08 05:50:30	2017-07-08 05:50:30
+1	2017-07-09 05:50:30	2017-07-09 05:50:30
+1	2017-07-10 05:50:30	2017-07-10 05:50:30
+1	2017-07-12 05:50:30	2017-07-12 05:50:30
+
+SELECT (c1=c11)::text FROM pre_enc_timestamp
+Result set:
+true
+true
+true
+true
+true
+
+DELETE_TEST
+SELECT * FROM pre_enc_timestamp
+Result set:
+1	2017-07-07 05:50:30	2017-07-07 05:50:30
+1	2017-07-08 05:50:30	2017-07-08 05:50:30
+1	2017-07-09 05:50:30	2017-07-09 05:50:30
+1	2017-07-10 05:50:30	2017-07-10 05:50:30
+
+SELECT (c1=c11)::text FROM pre_enc_timestamp
+Result set:
+true
+true
+true
+true
+
+SELECT_TEST
+SELECT (c1=c11)::text FROM pre_enc_timestamp
+Result set:
+true
+
+SELECT * FROM pre_enc_timestamp
+Result set:
+1	2017-07-07 05:50:30	2017-07-07 05:50:30
+1	2017-07-08 05:50:30	2017-07-08 05:50:30
+1	2017-07-09 05:50:30	2017-07-09 05:50:30
+1	2017-07-10 05:50:30	2017-07-10 05:50:30
+
+SELECT (c1=c11)::text FROM pre_enc_timestamp
+Result set:
+true
+true
+true
+true
+
+SELECT (c1=c11)::text,c1=c11 FROM pre_enc_timestamp
+Result set:
+true	1
+true	1
+true	1
+true	1
+
+SELECT * FROM pre_timestamp_tbl
+Result set:
+1	2017-07-07 05:50:30
+1	2017-07-08 05:50:30
+1	2017-07-09 05:50:30
+1	2017-07-10 05:50:30
+
+SELECT (e.c1=t.c1)::text FROM pre_enc_timestamp e NATURAL JOIN pre_timestamp_tbl t
+Result set:
+true
+true
+true
+true
+
+PREPARE_TEST_COMPLETE
+
+----------------------------------------
+DIRECT_TEST_START
+
+INSERT_TEST
+SELECT * FROM dir_enc_timestamp
+Result set:
+1	2017-07-07 05:50:30	2017-07-07 05:50:30
+1	2017-07-08 05:50:30	2017-07-08 05:50:30
+
+SELECT (c1=c11)::text FROM dir_enc_timestamp
+Result set:
+true
+true
+
+UPDATE_TEST
+SELECT * FROM dir_enc_timestamp
+Result set:
+1	2017-07-07 05:50:30	2017-07-07 05:50:30
+1	2017-07-12 05:50:30	2017-07-12 05:50:30
+
+SELECT (c1=c11)::text FROM dir_enc_timestamp
+Result set:
+true
+true
+
+DELETE_TEST
+SELECT * FROM dir_enc_timestamp
+Result set:
+1	2017-07-07 05:50:30	2017-07-07 05:50:30
+
+SELECT (c1=c11)::text FROM dir_enc_timestamp
+Result set:
+true
+
+SELECT_TEST
+
+SELECT * FROM dir_enc_timestamp
+Result set:
+1	2017-07-07 05:50:30	2017-07-07 05:50:30
+
+SELECT * FROM dir_enc_timestamp
+Result set:
+1	2017-07-07 05:50:30	2017-07-07 05:50:30
+
+SELECT (c1=c11)::text FROM dir_enc_timestamp
+Result set:
+true
+
+SELECT * FROM dir_timestamp_tbl
+Result set:
+1	2017-07-07 05:50:30
+
+SELECT (e.c1=t.c1)::text FROM dir_enc_timestamp e NATURAL JOIN dir_timestamp_tbl t
+Result set:
+true
+
+SELECT (p.c1=d.c1)::text FROM dir_enc_timestamp d NATURAL JOIN pre_enc_timestamp p
+Result set:
+true
+
+DIRECT_TEST_COMPLETE
+----------------------------------------
+disconnecting
+
+---------- BI=12 End ----------
+
+BI=12 TEST
+
+---------- BI=12 Start ----------
+connected
+
+SQLPrepare_TEST_START
+
+INSERT_TEST
+SELECT * FROM pre_enc_bytea
+Result set:
+0	01020304050607	01020304050607
+1	0102030405060708	0102030405060708
+2	010203040506070800	010203040506070800
+
+SELECT (c1=c11)::text FROM pre_enc_bytea
+Result set:
+true
+true
+true
+
+UPDATE_TEST
+
+SELECT * FROM pre_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+2	010203040506070800	010203040506070800
+0	010203040506	010203040506
+
+SELECT id, (c1=c11)::text FROM pre_enc_bytea
+Result set:
+1	true
+2	true
+0	true
+
+DELETE_TEST
+
+SELECT * FROM pre_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+2	010203040506070800	010203040506070800
+0	010203040506	010203040506
+
+SELECT (c1=c11)::text FROM pre_enc_bytea
+Result set:
+true
+true
+true
+
+SELECT_TEST
+SELECT c1=c11 FROM pre_enc_bytea WHERE c1
+Result set:
+true
+
+SELECT * FROM pre_enc_bytea WHERE c1
+Result set:
+1	0102030405060708	0102030405060708
+
+SELECT * FROM pre_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+2	010203040506070800	010203040506070800
+0	010203040506	010203040506
+
+SELECT (c1=c11)::text,c1=c11 FROM pre_enc_bytea
+Result set:
+true	1
+true	1
+true	1
+
+SELECT * FROM pre_bytea_tbl UNION ALL SELECT id,c1 FROM pre_enc_bytea
+Result set:
+1	0102030405060708
+2	010203040506070800
+0	010203040506
+1	0102030405060708
+2	010203040506070800
+0	010203040506
+
+SELECT (e.c1=t.c1)::text FROM pre_enc_bytea e NATURAL JOIN pre_bytea_tbl t
+Result set:
+true
+true
+true
+
+PREPARE_TEST_COMPLETE
+
+----------------------------------------
+SQLDirect_TEST_START
+
+INSERT_TEST
+SELECT * FROM dir_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+2	01020304050607	01020304050607
+
+SELECT (c1=c11)::text FROM dir_enc_bytea
+Result set:
+true
+true
+
+UPDATE_TEST
+SELECT * FROM dir_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+2	010203040506	010203040506
+
+SELECT (c1=c11)::text FROM dir_enc_bytea
+Result set:
+true
+true
+
+DELETE_TEST
+SELECT * FROM dir_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+
+SELECT * FROM dir_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+
+SELECT (c1=c11)::text FROM dir_enc_bytea
+Result set:
+true
+
+SELECT_TEST
+SELECT * FROM dir_enc_bytea WHERE c1='\x0102030405060708'
+Result set:
+1	0102030405060708	0102030405060708
+
+SELECT * FROM pre_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+2	010203040506070800	010203040506070800
+0	010203040506	010203040506
+
+SELECT * FROM dir_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+
+SELECT (c1=c11)::text FROM dir_enc_bytea
+Result set:
+true
+
+SELECT * FROM dir_bytea_tbl UNION ALL SELECT id,c1 FROM dir_enc_bytea
+Result set:
+1	0102030405060708
+1	0102030405060708
+
+SELECT (e.c1=t.c1)::text FROM dir_enc_bytea e NATURAL JOIN dir_bytea_tbl t
+Result set:
+true
+
+DIRECTE_TEST_COMPLETE
+----------------------------------------
+
+SQLPrepare_TEST_START
+
+INSERT_TEST
+SELECT * FROM pre_enc_text
+Result set:
+0	foo	foo
+1	bar	bar
+2	tde	tde
+
+SELECT (c1=c11)::text FROM pre_enc_text
+Result set:
+true
+true
+true
+
+UPDATE_TEST
+SELECT * FROM pre_enc_text
+Result set:
+0	foo	foo
+1	bar	bar
+2	enc	enc
+
+SELECT (c1=c11)::text FROM pre_enc_text
+Result set:
+true
+true
+true
+
+DELETE_TEST
+SELECT * FROM pre_enc_text
+Result set:
+0	foo	foo
+1	bar	bar
+
+SELECT (c1=c11)::text FROM pre_enc_text
+Result set:
+true
+true
+
+SELECT_TEST
+SELECT (c1=c11)::text FROM pre_enc_text WHERE c1
+Result set:
+true
+
+SELECT * FROM pre_enc_text
+Result set:
+0	foo	foo
+1	bar	bar
+
+SELECT (c1=c11)::text FROM pre_enc_text
+Result set:
+true
+true
+
+SELECT (c1=c11)::text,c1=c11 FROM pre_enc_text
+Result set:
+true	1
+true	1
+
+SELECT * FROM pre_text_tbl
+Result set:
+0	foo
+1	bar
+
+SELECT (e.c1=t.c1)::text FROM pre_enc_text e NATURAL JOIN pre_text_tbl t
+Result set:
+true
+true
+
+PREPARE_TEST_COMPLETE
+
+----------------------------------------
+SQLDirect_TEST_START
+
+INSERT_TEST
+SELECT * FROM dir_enc_text
+Result set:
+0	foo	foo
+1	bar	bar
+
+SELECT (c1=c11)::text FROM dir_enc_text
+Result set:
+true
+true
+
+UPDATE_TEST
+SELECT * FROM dir_enc_text
+Result set:
+0	foo	foo
+1	enc	enc
+
+SELECT (c1=c11)::text FROM dir_enc_text
+Result set:
+true
+true
+
+DELETE_TEST
+SELECT * FROM dir_enc_text
+Result set:
+0	foo	foo
+
+SELECT (c1=c11)::text FROM dir_enc_text
+Result set:
+true
+
+SELECT_TEST
+
+SELECT * FROM dir_enc_text
+Result set:
+0	foo	foo
+
+SELECT * FROM dir_enc_text
+Result set:
+0	foo	foo
+
+SELECT (c1=c11)::text FROM dir_enc_text
+Result set:
+true
+
+SELECT * FROM dir_text_tbl
+Result set:
+0	foo
+
+SELECT (d.c1=t.c1)::text FROM dir_enc_text d NATURAL JOIN dir_text_tbl t
+Result set:
+true
+
+SELECT (p.c1=d.c1)::text FROM dir_enc_text d NATURAL JOIN pre_enc_text p
+Result set:
+true
+
+DIRECT_TEST_COMPLETE
+----------------------------------------
+
+SQLPrepare_TEST_START
+
+INSERT_TEST
+SELECT * FROM pre_enc_num
+Result set:
+1	24197857161011715162171839636988778104	24197857161011715162171839636988778104
+2	12345678901234567890123456789012345678	12345678901234567890123456789012345678
+
+SELECT (c1=c11)::text FROM pre_enc_num
+Result set:
+true
+true
+
+UPDATE_TEST
+SELECT * FROM pre_enc_num
+Result set:
+1	24197857161011715162171839636988778104	24197857161011715162171839636988778104
+2	25.212	25.212
+
+SELECT (c1=c11)::text FROM pre_enc_num
+Result set:
+true
+true
+
+DELETE_TEST
+SELECT * FROM pre_enc_num
+Result set:
+1	24197857161011715162171839636988778104	24197857161011715162171839636988778104
+
+SELECT (c1=c11)::text FROM pre_enc_num
+Result set:
+true
+
+SELECT_TEST
+SELECT (c1=c11)::text FROM pre_enc_num
+Result set:
+true
+
+SELECT * FROM pre_enc_num
+Result set:
+1	24197857161011715162171839636988778104	24197857161011715162171839636988778104
+
+SELECT c1=c11 FROM pre_enc_num
+Result set:
+1
+
+SELECT (c1=c11)::text,c1=c11 FROM pre_enc_num
+Result set:
+true	1
+
+SELECT * FROM pre_num_tbl
+Result set:
+1	24197857161011715162171839636988778104
+
+SELECT (e.c1=t.c1)::text FROM pre_enc_num e NATURAL JOIN pre_num_tbl t
+Result set:
+true
+
+PREPARE_TEST_COMPLETE
+
+----------------------------------------
+DIRECT_TEST_START
+
+INSERT_TEST
+SELECT * FROM dir_enc_num
+Result set:
+1	24197857161011715162171839636988778104	24197857161011715162171839636988778104
+2	12345678901234567890123456789012345678	12345678901234567890123456789012345678
+
+SELECT (c1=c11)::text FROM dir_enc_num
+Result set:
+true
+true
+
+UPDATE_TEST
+SELECT * FROM dir_enc_num
+Result set:
+1	24197857161011715162171839636988778104	24197857161011715162171839636988778104
+2	25.212	25.212
+
+SELECT (c1=c11)::text FROM dir_enc_num
+Result set:
+true
+true
+
+DELETE_TEST
+SELECT * FROM dir_enc_num
+Result set:
+1	24197857161011715162171839636988778104	24197857161011715162171839636988778104
+
+SELECT (c1=c11)::text FROM dir_enc_num
+Result set:
+true
+
+SELECT_TEST
+SELECT * FROM dir_enc_num
+Result set:
+1	24197857161011715162171839636988778104	24197857161011715162171839636988778104
+
+SELECT * FROM dir_enc_num
+Result set:
+1	24197857161011715162171839636988778104	24197857161011715162171839636988778104
+
+SELECT (c1=c11)::text FROM dir_enc_num
+Result set:
+true
+
+SELECT * FROM dir_num_tbl
+Result set:
+1	24197857161011715162171839636988778104
+
+SELECT (e.c1=t.c1)::text FROM dir_enc_num e NATURAL JOIN dir_num_tbl t
+Result set:
+true
+
+SELECT (p.c1=d.c1)::text FROM dir_enc_num d NATURAL JOIN pre_enc_num p
+Result set:
+true
+
+DIRECT_TEST_COMPLETE
+----------------------------------------
+
+SQLPrepare_TEST_START
+
+INSERT_TEST
+SELECT * FROM pre_enc_timestamp
+Result set:
+1	2017-07-07 05:50:30	2017-07-07 05:50:30
+1	2017-07-08 05:50:30	2017-07-08 05:50:30
+1	2017-07-09 05:50:30	2017-07-09 05:50:30
+1	2017-07-10 05:50:30	2017-07-10 05:50:30
+1	2017-07-11 05:50:30	2017-07-11 05:50:30
+
+SELECT (c1=c11)::text FROM pre_enc_timestamp
+Result set:
+true
+true
+true
+true
+true
+
+UPDATE_TEST
+SELECT * FROM pre_enc_timestamp
+Result set:
+1	2017-07-07 05:50:30	2017-07-07 05:50:30
+1	2017-07-08 05:50:30	2017-07-08 05:50:30
+1	2017-07-09 05:50:30	2017-07-09 05:50:30
+1	2017-07-10 05:50:30	2017-07-10 05:50:30
+1	2017-07-12 05:50:30	2017-07-12 05:50:30
+
+SELECT (c1=c11)::text FROM pre_enc_timestamp
+Result set:
+true
+true
+true
+true
+true
+
+DELETE_TEST
+SELECT * FROM pre_enc_timestamp
+Result set:
+1	2017-07-07 05:50:30	2017-07-07 05:50:30
+1	2017-07-08 05:50:30	2017-07-08 05:50:30
+1	2017-07-09 05:50:30	2017-07-09 05:50:30
+1	2017-07-10 05:50:30	2017-07-10 05:50:30
+
+SELECT (c1=c11)::text FROM pre_enc_timestamp
+Result set:
+true
+true
+true
+true
+
+SELECT_TEST
+SELECT (c1=c11)::text FROM pre_enc_timestamp
+Result set:
+true
+
+SELECT * FROM pre_enc_timestamp
+Result set:
+1	2017-07-07 05:50:30	2017-07-07 05:50:30
+1	2017-07-08 05:50:30	2017-07-08 05:50:30
+1	2017-07-09 05:50:30	2017-07-09 05:50:30
+1	2017-07-10 05:50:30	2017-07-10 05:50:30
+
+SELECT (c1=c11)::text FROM pre_enc_timestamp
+Result set:
+true
+true
+true
+true
+
+SELECT (c1=c11)::text,c1=c11 FROM pre_enc_timestamp
+Result set:
+true	1
+true	1
+true	1
+true	1
+
+SELECT * FROM pre_timestamp_tbl
+Result set:
+1	2017-07-07 05:50:30
+1	2017-07-08 05:50:30
+1	2017-07-09 05:50:30
+1	2017-07-10 05:50:30
+
+SELECT (e.c1=t.c1)::text FROM pre_enc_timestamp e NATURAL JOIN pre_timestamp_tbl t
+Result set:
+true
+true
+true
+true
+
+PREPARE_TEST_COMPLETE
+
+----------------------------------------
+DIRECT_TEST_START
+
+INSERT_TEST
+SELECT * FROM dir_enc_timestamp
+Result set:
+1	2017-07-07 05:50:30	2017-07-07 05:50:30
+1	2017-07-08 05:50:30	2017-07-08 05:50:30
+
+SELECT (c1=c11)::text FROM dir_enc_timestamp
+Result set:
+true
+true
+
+UPDATE_TEST
+SELECT * FROM dir_enc_timestamp
+Result set:
+1	2017-07-07 05:50:30	2017-07-07 05:50:30
+1	2017-07-12 05:50:30	2017-07-12 05:50:30
+
+SELECT (c1=c11)::text FROM dir_enc_timestamp
+Result set:
+true
+true
+
+DELETE_TEST
+SELECT * FROM dir_enc_timestamp
+Result set:
+1	2017-07-07 05:50:30	2017-07-07 05:50:30
+
+SELECT (c1=c11)::text FROM dir_enc_timestamp
+Result set:
+true
+
+SELECT_TEST
+
+SELECT * FROM dir_enc_timestamp
+Result set:
+1	2017-07-07 05:50:30	2017-07-07 05:50:30
+
+SELECT * FROM dir_enc_timestamp
+Result set:
+1	2017-07-07 05:50:30	2017-07-07 05:50:30
+
+SELECT (c1=c11)::text FROM dir_enc_timestamp
+Result set:
+true
+
+SELECT * FROM dir_timestamp_tbl
+Result set:
+1	2017-07-07 05:50:30
+
+SELECT (e.c1=t.c1)::text FROM dir_enc_timestamp e NATURAL JOIN dir_timestamp_tbl t
+Result set:
+true
+
+SELECT (p.c1=d.c1)::text FROM dir_enc_timestamp d NATURAL JOIN pre_enc_timestamp p
+Result set:
+true
+
+DIRECT_TEST_COMPLETE
+----------------------------------------
+disconnecting
+
+---------- BI=12 End ----------

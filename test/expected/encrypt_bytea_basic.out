@@ -1,0 +1,154 @@
+connected
+
+===========ENCRYPT_BYTEA_TEST_BASIC_DATA_START===============
+
+SQLPrepare_TEST_START
+
+INSERT_TEST
+SELECT * FROM pre_enc_bytea
+Result set:
+0	01020304050607	01020304050607
+1	0102030405060708	0102030405060708
+2	010203040506070800	010203040506070800
+
+SELECT (c1=c11)::text FROM pre_enc_bytea
+Result set:
+true
+true
+true
+
+UPDATE_TEST
+
+SELECT * FROM pre_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+2	010203040506070800	010203040506070800
+0	010203040506	010203040506
+
+SELECT id, (c1=c11)::text FROM pre_enc_bytea
+Result set:
+1	true
+2	true
+0	true
+
+DELETE_TEST
+
+SELECT * FROM pre_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+2	010203040506070800	010203040506070800
+0	010203040506	010203040506
+
+SELECT (c1=c11)::text FROM pre_enc_bytea
+Result set:
+true
+true
+true
+
+SELECT_TEST
+SELECT c1=c11 FROM pre_enc_bytea WHERE c1
+Result set:
+true
+
+SELECT * FROM pre_enc_bytea WHERE c1
+Result set:
+1	0102030405060708	0102030405060708
+
+SELECT * FROM pre_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+2	010203040506070800	010203040506070800
+0	010203040506	010203040506
+
+SELECT (c1=c11)::text,c1=c11 FROM pre_enc_bytea
+Result set:
+true	1
+true	1
+true	1
+
+SELECT * FROM pre_bytea_tbl UNION ALL SELECT id,c1 FROM pre_enc_bytea
+Result set:
+1	0102030405060708
+2	010203040506070800
+0	010203040506
+1	0102030405060708
+2	010203040506070800
+0	010203040506
+
+SELECT (e.c1=t.c1)::text FROM pre_enc_bytea e NATURAL JOIN pre_bytea_tbl t
+Result set:
+true
+true
+true
+
+PREPARE_TEST_COMPLETE
+
+----------------------------------------
+SQLDirect_TEST_START
+
+INSERT_TEST
+SELECT * FROM dir_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+2	01020304050607	01020304050607
+
+SELECT (c1=c11)::text FROM dir_enc_bytea
+Result set:
+true
+true
+
+UPDATE_TEST
+SELECT * FROM dir_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+2	010203040506	010203040506
+
+SELECT (c1=c11)::text FROM dir_enc_bytea
+Result set:
+true
+true
+
+DELETE_TEST
+SELECT * FROM dir_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+
+SELECT * FROM dir_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+
+SELECT (c1=c11)::text FROM dir_enc_bytea
+Result set:
+true
+
+SELECT_TEST
+SELECT * FROM dir_enc_bytea WHERE c1='\x0102030405060708'
+Result set:
+1	0102030405060708	0102030405060708
+
+SELECT * FROM pre_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+2	010203040506070800	010203040506070800
+0	010203040506	010203040506
+
+SELECT * FROM dir_enc_bytea
+Result set:
+1	0102030405060708	0102030405060708
+
+SELECT (c1=c11)::text FROM dir_enc_bytea
+Result set:
+true
+
+SELECT * FROM dir_bytea_tbl UNION ALL SELECT id,c1 FROM dir_enc_bytea
+Result set:
+1	0102030405060708
+1	0102030405060708
+
+SELECT (e.c1=t.c1)::text FROM dir_enc_bytea e NATURAL JOIN dir_bytea_tbl t
+Result set:
+true
+
+DIRECTE_TEST_COMPLETE
+----------------------------------------
+disconnecting

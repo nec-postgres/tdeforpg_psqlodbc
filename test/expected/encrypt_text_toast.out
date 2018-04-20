@@ -1,0 +1,152 @@
+connected
+
+===========ENCRYPT_TEXT_TEST_TOAST_DATA_START===============
+
+SQLPrepare_TEST_START
+
+INSERT_TEST
+SELECT * FROM pre_enc_text
+Result set:
+0	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+1	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+2	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+3	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+
+SELECT (c1=c11)::text FROM pre_enc_text
+Result set:
+true
+true
+true
+true
+
+UPDATE_TEST
+SELECT * FROM pre_enc_text
+Result set:
+0	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+1	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+2	bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb	bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+3	bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb	bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+
+SELECT (c1=c11)::text FROM pre_enc_text
+Result set:
+true
+true
+true
+true
+
+DELETE_TEST
+SELECT * FROM pre_enc_text
+Result set:
+0	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+1	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+2	bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb	bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+
+SELECT (c1=c11)::text FROM pre_enc_text
+Result set:
+true
+true
+true
+
+SELECT_TEST
+SELECT (c1=c11)::text FROM pre_enc_text WHERE c1
+Result set:
+true
+true
+
+SELECT * FROM pre_enc_text
+Result set:
+0	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+1	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+2	bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb	bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+
+SELECT (c1=c11)::text FROM pre_enc_text
+Result set:
+true
+true
+true
+
+SELECT (c1=c11)::text,c1=c11 FROM pre_enc_text
+Result set:
+true	1
+true	1
+true	1
+
+SELECT * FROM pre_text_tbl
+Result set:
+0	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+1	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+2	bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+
+SELECT (e.c1=t.c1)::text FROM pre_enc_text e NATURAL JOIN pre_text_tbl t
+Result set:
+true
+true
+true
+
+PREPARE_TEST_COMPLETE
+
+----------------------------------------
+SQLDirect_TEST_START
+
+INSERT_TEST
+SELECT * FROM dir_enc_text
+Result set:
+0	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+1	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+
+SELECT (c1=c11)::text FROM dir_enc_text
+Result set:
+true
+true
+
+UPDATE_TEST
+SELECT * FROM dir_enc_text
+Result set:
+0	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+1	bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb	bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+
+SELECT (c1=c11)::text FROM dir_enc_text
+Result set:
+true
+true
+
+DELETE_TEST
+SELECT * FROM dir_enc_text
+Result set:
+0	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+
+SELECT (c1=c11)::text FROM dir_enc_text
+Result set:
+true
+
+SELECT_TEST
+
+SELECT * FROM dir_enc_text
+Result set:
+0	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+
+SELECT * FROM dir_enc_text
+Result set:
+0	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+
+SELECT (c1=c11)::text FROM dir_enc_text
+Result set:
+true
+
+SELECT * FROM dir_text_tbl
+Result set:
+0	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+
+SELECT (d.c1=t.c1)::text FROM dir_enc_text d NATURAL JOIN dir_text_tbl t
+Result set:
+true
+
+SELECT (p.c1=d.c1)::text FROM dir_enc_text d NATURAL JOIN pre_enc_text p
+Result set:
+true
+
+DIRECT_TEST_COMPLETE
+----------------------------------------
+disconnecting
+
+===========ENCRYPT_TEXT_TEST_TOAST_DATA_END==============
